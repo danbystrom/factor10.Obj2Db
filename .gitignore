@@ -1,0 +1,43 @@
+bin
+obj
+build
+packages
+buildframework/psake*
+
+Web.Personal.config
+
+*.swp
+*.swo
+
+*_ReSharper*
+*.DotSettings
+*.resharper.*
+*.suo
+*.user
+*.orig
+
+src/.vs
+
+EFS*.TMP
+TestResult.xml
+
+# mstest test results
+TestResults
+
+# silly files created by Finder on the Mac
+.DS_Store
+._.DS_Store
+
+# Webstorm
+.idea
+
+*_TeamCity.*
+*.sublime-project
+*.sublime-workspace
+_Chutzpah.coverage.json
+_Chutzpah.*.html
+
+node_modules
+NuGet.config
+src/_NCrunch_SiriusGP
+_NCrunchResult
