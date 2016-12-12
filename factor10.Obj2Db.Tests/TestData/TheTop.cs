@@ -6,12 +6,14 @@ namespace factor10.Obj2Db.Tests.TestData
 {
     public class TheTop
     {
-        public string String;
+        public string FirstName;
         public int Int;
         public double Double;
 
         public SomeStruct SomeStruct;
 
+        public List<string> Strings;
+        public List<SomeStruct> Structs;
 
     }
 }
