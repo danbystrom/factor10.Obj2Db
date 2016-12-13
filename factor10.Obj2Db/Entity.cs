@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace factor10.Obj2Db
 {
@@ -11,60 +12,58 @@ namespace factor10.Obj2Db
         IEnumerable,
     }
 
-    public class Entity
+    public class EntitySpec
     {
         public string Name;
+        public string ExternalName;
+        public List<EntitySpec> Fields = new List<EntitySpec>();
 
-        public LinkedFieldInfo FieldInfo { get; internal set; }
-        public TypeOfEntity TypeOfEntity { get; internal set; }
-
-        public List<Entity> Fields = new List<Entity>();
-
-        private Entity()
+        private EntitySpec()
         {
         }
 
         public bool IsField => !Fields.Any();
 
-        public static Entity Begin(string name = null)
+        public static EntitySpec Begin(string name = null, string externalName = null)
         {
-            return new Entity {Name = name};
+            return new EntitySpec {Name = name, ExternalName = externalName};
         }
 
-        public Entity Add(Entity entity)
+        public EntitySpec Add(EntitySpec entitySpec)
         {
-            Fields.Add(entity);
+            Fields.Add(entitySpec);
             return this;
         }
 
-        public static implicit operator Entity(string name)
+        public static implicit operator EntitySpec(string name)
         {
-            return new Entity {Name = name};
+            return new EntitySpec {Name = name};
         }
 
     }
 
-    public class ProcessedEntity
+    public class Entity
     {
         public readonly string Name;
+        public readonly string ExternalName;
+        public readonly string TypeName;
+        public LinkedFieldInfo FieldInfo { get; private set; }
+        public readonly TypeOfEntity TypeOfEntity;
 
-        public readonly Table Table;
+        public readonly List<Entity> Fields = new List<Entity>();
+        public List<Entity> Lists { get; private set; } = new List<Entity>();
 
-        public LinkedFieldInfo FieldInfo { get; internal set; }
-        public TypeOfEntity TypeOfEntity { get; internal set; }
-        public string ExternalName => Name;
+        public Table Table;
 
-        public readonly List<ProcessedEntity> Fields = new List<ProcessedEntity>();
-        public readonly List<ProcessedEntity> Lists = new List<ProcessedEntity>();
-
-        private ProcessedEntity()
+        private Entity(LinkedFieldInfo fieldInfo)
         {
-            
+            FieldInfo = fieldInfo;
         }
 
-        public ProcessedEntity(Type type, Entity entity)
+        public Entity(Type type, EntitySpec entitySpec)
         {
-            Name = entity.Name;
+            Name = entitySpec.Name;
+            ExternalName = entitySpec.ExternalName ?? entitySpec.Name?.Replace(".", "");
 
             if (Name != null)
             {
@@ -78,40 +77,53 @@ namespace factor10.Obj2Db
                 {
                     TypeOfEntity = TypeOfEntity.IEnumerable;
                     type = ienum.GetGenericArguments()[0];
-                    if (entity.IsField)
-                        Fields.Add(new ProcessedEntity {FieldInfo = LinkedFieldInfo.Null(type) });
+                    if (entitySpec.IsField)
+                        Fields.Add(new Entity(LinkedFieldInfo.Null(type)));
                 }
-                else if (entity.IsField)
+                else if (entitySpec.IsField)
                     TypeOfEntity = TypeOfEntity.PlainField;
                 else
                     TypeOfEntity = TypeOfEntity.Class;
             }
 
-            foreach (var subEntity in entity.Fields)
+            foreach (var subEntity in entitySpec.Fields)
             {
-                var pe = new ProcessedEntity(type, subEntity);
+                var pe = new Entity(type, subEntity);
                 (pe.TypeOfEntity == TypeOfEntity.IEnumerable ? Lists : Fields).Add(pe);
             }
 
-            if (TypeOfEntity != TypeOfEntity.PlainField)
-                Table = new Table(this, false);
+            TypeName = type.Name;
         }
 
         public object[] GetRow(object obj)
         {
             if (TypeOfEntity == TypeOfEntity.PlainField)
                 return new[] { FieldInfo.GetValue(obj) };
-            return Fields.Select(_ => _.FieldInfo.GetValue(obj)).ToArray();
+            var result = new object[Fields.Count];
+            for (var i = 0; i < result.Length; i++)
+                result[i] = Fields[i].FieldInfo.GetValue(obj);
+            return result;
         }
 
-        public IEnumerable<ProcessedEntity> GetAll()
+        public IEnumerable<Entity> AllEntities(bool includeFields)
         {
             yield return this;
-            foreach (var x in Fields.SelectMany(_ => _.GetAll()))
-                yield return x;
-            foreach (var x in Lists.SelectMany(_ => _.GetAll()))
+            if(includeFields)
+                foreach (var x in Fields.SelectMany(_ => _.AllEntities(true)))
+                    yield return x;
+            foreach (var x in Lists.SelectMany(_ => _.AllEntities(includeFields)))
                 yield return x;
         }
+
+        public Entity CloneWithNewTables(bool hasForeignKey = false)
+        {
+            var clone = (Entity) MemberwiseClone();
+            if (clone.TypeOfEntity != TypeOfEntity.PlainField)
+                clone.Table = new Table(clone, true);
+            clone.Lists = clone.Lists.Select(_ => _.CloneWithNewTables(true)).ToList();
+            return clone;
+        }
+
     }
 
 }

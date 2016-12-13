@@ -2,21 +2,23 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Threading;
 
 namespace factor10.Obj2Db
 {
 
     public class Export<T>
     {
-        private readonly ProcessedEntity _entity;
-         
-        public Export(Entity entity)
+        private readonly Entity _entity;
+        public readonly ITableFactory TableFactory;
+
+        public Export(EntitySpec entitySpec, ITableFactory tableFactory = null)
         {
-            _entity = new ProcessedEntity(typeof(T), entity);
+            _entity = new Entity(typeof(T), entitySpec);
+            TableFactory = tableFactory ?? new TableFactory(null);
         }
  
-        public void DumpEntities(int indent, ProcessedEntity entity = null)
+        public void DumpEntities(int indent, Entity entity = null)
         {
             entity = entity ?? _entity;
             System.Diagnostics.Debug.Print(new string(' ', indent) + entity.Name + " (" + entity.TypeOfEntity + ")");
@@ -26,19 +28,22 @@ namespace factor10.Obj2Db
                 DumpEntities(indent + 1, x);
         }
 
-        public IEnumerable<Table> Run(T obj)
+        public List<Table> Run(T obj)
         {
             return Run(new[] {obj});
         }
 
         public List<Table> Run(IEnumerable<T> objs)
         {
-            foreach(var obj in objs)
-               run(_entity, obj, Guid.Empty);
-            return _entity.GetAll().Select(_ => _.Table).Where(_ => _ != null).ToList();
+            var ed = new ConcurrentEntityTableDictionary(_entity);
+            objs.AsParallel().ForAll(_ =>
+            {
+                run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty);
+            });
+            return ed.AllTableFragments();
         }
 
-        private void run(ProcessedEntity entity, object obj, Guid parentRowId)
+        private void run(Entity entity, object obj, Guid parentRowId)
         {
             var tableRow = entity.Table.AddRow(parentRowId, entity.GetRow(obj));
             foreach (var subEntity in entity.Lists)

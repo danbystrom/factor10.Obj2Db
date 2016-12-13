@@ -19,7 +19,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimpleProperties()
         {
-            var export = new Export<TheTop>(Entity.Begin()
+            var export = new Export<TheTop>(EntitySpec.Begin()
                 .Add("FirstName")
                 .Add("SomeStruct.X"));
             var tables = export.Run(_td);
@@ -29,23 +29,23 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimplePropertiesAndIEnumerableOverPrimitive()
         {
-            var export = new Export<TheTop>(Entity.Begin()
+            var export = new Export<TheTop>(EntitySpec.Begin()
                 .Add("Strings"));
             var tables = export.Run(_td);
             var t = tables.Last();
-            CollectionAssert.AreEqual(_td.Strings, t.Rows.SelectMany(_ => _.Columns));
+            CollectionAssert.AreEquivalent(_td.Strings, t.Rows.SelectMany(_ => _.Columns));
         }
 
         [Test]
         public void TestSimplePropertiesAndIEnumerableOverStruct()
         {
-            var export = new Export<TheTop>(Entity.Begin()
-                .Add(Entity.Begin("Structs")
+            var export = new Export<TheTop>(EntitySpec.Begin()
+                .Add(EntitySpec.Begin("Structs")
                     .Add("X")
                     .Add("Y")));
             var tables = export.Run(_td);
             var t = tables.Last();
-            CollectionAssert.AreEqual(new[] {5, 6, 7, 8}, t.Rows.SelectMany(_ => _.Columns));
+            CollectionAssert.AreEquivalent(new[] {5, 6, 7, 8}, t.Rows.SelectMany(_ => _.Columns));
         }
 
     }
