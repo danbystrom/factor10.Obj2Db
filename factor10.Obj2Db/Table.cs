@@ -8,21 +8,30 @@ namespace factor10.Obj2Db
     public interface ITable
     {
         string Name { get; }
-        TableRow AddRow(Guid parentRowId, object[] columns);
+        Guid AddRow(Guid parentRowId, object[] columns);
+        List<TableRow> Rows { get; }
+        List<Tuple<string, Type>> Fields { get; }
+        bool HasForeignKey { get; }
     }
 
     public class Table : ITable
     {
+        public ITableService TableService;
+
         public string Name { get; }
-        public readonly bool HasForeignKey;
+        public bool HasForeignKey { get; }
 
         public readonly Guid Id = Guid.NewGuid();
 
-        public readonly List<Tuple<string, Type>> Fields;
-        public readonly List<TableRow> Rows = new List<TableRow>();
+        public List<Tuple<string, Type>> Fields { get; }
+        public List<TableRow> Rows { get;} = new List<TableRow>();
 
-        public Table(Entity entity, bool hasForeignKey)
+        private readonly int _flushThreshold;
+
+        public Table(ITableService tableService, Entity entity, bool hasForeignKey, int flushThreshold)
         {
+            TableService = tableService;
+            _flushThreshold = flushThreshold;
             Name = entity.Name ?? entity.TypeName;
             HasForeignKey = hasForeignKey;
             Fields = entity.Fields.Select(_ => Tuple.Create(_.ExternalName, _.FieldInfo.FieldType)).ToList();
@@ -50,13 +59,18 @@ namespace factor10.Obj2Db
             return table;
         }
 
-        public TableRow AddRow(Guid parentRowId, object[] columns)
+        public Guid AddRow(Guid parentRowId, object[] columns)
         {
             if (columns.Length != Fields.Count)
                 throw new ArgumentException();
+            if (Rows.Count >= _flushThreshold)
+            {
+                TableService.Save(this);
+                Rows.Clear();
+            }
             var tableRow = new TableRow(parentRowId) {Columns = columns};
             Rows.Add(tableRow);
-            return tableRow;
+            return tableRow.PrimaryKey;
         }
 
     }

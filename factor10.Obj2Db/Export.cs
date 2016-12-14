@@ -10,12 +10,12 @@ namespace factor10.Obj2Db
     public class Export<T>
     {
         private readonly Entity _entity;
-        public readonly ITableFactory TableFactory;
+        public readonly ITableService TableService;
 
-        public Export(EntitySpec entitySpec, ITableFactory tableFactory = null)
+        public Export(EntitySpec entitySpec, ITableService tableService = null)
         {
             _entity = new Entity(typeof(T), entitySpec);
-            TableFactory = tableFactory ?? new TableFactory(null);
+            TableService = tableService ?? new InMemoryTableService();
         }
  
         public void DumpEntities(int indent, Entity entity = null)
@@ -28,14 +28,14 @@ namespace factor10.Obj2Db
                 DumpEntities(indent + 1, x);
         }
 
-        public List<Table> Run(T obj)
+        public List<ITable> Run(T obj)
         {
             return Run(new[] {obj});
         }
 
-        public List<Table> Run(IEnumerable<T> objs)
+        public List<ITable> Run(IEnumerable<T> objs)
         {
-            var ed = new ConcurrentEntityTableDictionary(_entity);
+            var ed = new ConcurrentEntityTableDictionary(TableService, _entity);
             objs.AsParallel().ForAll(_ =>
             {
                 run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty);
@@ -45,10 +45,10 @@ namespace factor10.Obj2Db
 
         private void run(Entity entity, object obj, Guid parentRowId)
         {
-            var tableRow = entity.Table.AddRow(parentRowId, entity.GetRow(obj));
+            var id = entity.Table.AddRow(parentRowId, entity.GetRow(obj));
             foreach (var subEntity in entity.Lists)
                 foreach (var itm in (IEnumerable) subEntity.FieldInfo.GetValue(obj))
-                    run(subEntity, itm, tableRow.PrimaryKey);
+                    run(subEntity, itm, id);
         }
 
     }

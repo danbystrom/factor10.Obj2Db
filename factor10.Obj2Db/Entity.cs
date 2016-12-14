@@ -53,7 +53,7 @@ namespace factor10.Obj2Db
         public readonly List<Entity> Fields = new List<Entity>();
         public List<Entity> Lists { get; private set; } = new List<Entity>();
 
-        public Table Table;
+        public ITable Table;
 
         private Entity(LinkedFieldInfo fieldInfo)
         {
@@ -68,11 +68,7 @@ namespace factor10.Obj2Db
             if (Name != null)
             {
                 FieldInfo = new LinkedFieldInfo(type, Name);
-                var ft = FieldInfo.FieldInfo.FieldType;
-                var ienum = ft != typeof (string)
-                    ? ft.GetInterfaces().SingleOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof (IEnumerable<>))
-                    : null;
-
+                var ienum = FieldInfo.CheckForIEnumerable();
                 if (ienum != null)
                 {
                     TypeOfEntity = TypeOfEntity.IEnumerable;
@@ -115,12 +111,12 @@ namespace factor10.Obj2Db
                 yield return x;
         }
 
-        public Entity CloneWithNewTables(bool hasForeignKey = false)
+        public Entity CloneWithNewTables(ITableService tableService, bool hasForeignKey = false)
         {
             var clone = (Entity) MemberwiseClone();
             if (clone.TypeOfEntity != TypeOfEntity.PlainField)
-                clone.Table = new Table(clone, true);
-            clone.Lists = clone.Lists.Select(_ => _.CloneWithNewTables(true)).ToList();
+                clone.Table = tableService.New(this, hasForeignKey);
+            clone.Lists = clone.Lists.Select(_ => _.CloneWithNewTables(tableService, true)).ToList();
             return clone;
         }
 

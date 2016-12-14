@@ -44,17 +44,17 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSchoolExample()
         {
-            var export = new Export<School>(_spec);
+            var export = new Export<School>(_spec, new InMemoryTableService());
             var tables = export.Run(_school);
             Assert.AreEqual(1, tables.Single(_ => _.Name == "School").Rows.Count);
             Assert.AreEqual(6, tables.Single(_ => _.Name == "Classes").Rows.Count);
             Assert.AreEqual(100, tables.Single(_ => _.Name == "Students").Rows.Count);
         }
 
-        private static List<Table> mergeTablesHelper(IEnumerable<Table> allTables)
+        private static List<ITable> mergeTablesHelper(IEnumerable<ITable> allTables)
         {
             var joined = allTables.ToLookup(_ => _.Name, _ => _);
-            var result = new List<Table>();
+            var result = new List<ITable>();
             foreach (var z in joined)
             {
                 var tables = z.ToList();
@@ -69,7 +69,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void Test100Schools()
         {
-            var export = new Export<School>(_spec);
+            var export = new Export<School>(_spec, new InMemoryTableService());
             var sw = Stopwatch.StartNew();
             var tables = export.Run(Enumerable.Range(0, 100).Select(_ => _school));
             Console.Write(sw.ElapsedMilliseconds.ToString());
@@ -82,27 +82,27 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void Save100SchoolsToDb()
         {
-            var tableFactory = new TableFactory(SqlStuff.ConnectionString("SchoolTest"));
+            const int numberOfSchools = 100;
+            var tableFactory = new SqlTableService(SqlStuff.ConnectionString("SchoolTest"));
             var export = new Export<School>(_spec, tableFactory);
-            var sw = Stopwatch.StartNew();
-            var tables = export.Run(Enumerable.Range(0, 100).Select(_ => _school));
-            Console.WriteLine(sw.ElapsedMilliseconds.ToString());
             SqlStuff.WithNewDb("SchoolTest", conn =>
             {
-                sw.Restart();
-                foreach (var table in tables)
-                    tableFactory.Save(table);
+                var sw = Stopwatch.StartNew();
+                var tables = export.Run(Enumerable.Range(0, numberOfSchools).Select(_ => _school));
                 Console.WriteLine(sw.ElapsedMilliseconds.ToString());
-                Assert.AreEqual(100, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM school"));
-                Assert.AreEqual(600, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM classes"));
-                Assert.AreEqual(10000, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM students"));
+                sw.Restart();
+                tableFactory.Flush();
+                Console.WriteLine(sw.ElapsedMilliseconds.ToString());
+                Assert.AreEqual(numberOfSchools, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM school"));
+                Assert.AreEqual(numberOfSchools*6, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM classes"));
+                Assert.AreEqual(numberOfSchools*100, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM students"));
             });
         }
 
         [Test, Explicit]
         public void Test10000Schools()
         {
-            var export = new Export<School>(_spec);
+            var export = new Export<School>(_spec, new InMemoryTableService());
             var sw = Stopwatch.StartNew();
             var tables = export.Run(Enumerable.Range(0, 10000).Select(_ => _school));
             Console.Write(sw.ElapsedMilliseconds.ToString());

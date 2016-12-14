@@ -25,21 +25,33 @@ namespace ConsoleApplication1
                     FirstName = firstNames[i%firstNames.Length],
                     LastName = lastNames[i%lastNames.Length]
                 });
-            var export = new Export<School>(EntitySpec.Begin()
+            var spec = EntitySpec.Begin()
                 .Add("Name")
                 .Add(EntitySpec.Begin("Classes")
                     .Add("Name")
                     .Add(EntitySpec.Begin("Students")
                         .Add("FirstName")
-                        .Add("LastName"))));
-            for (var i = 0; i < 3; i++)
+                        .Add("LastName")));
+
+
+            const int numberOfSchools = 10000;
+            var tableFactory = new SqlTableService(SqlStuff.ConnectionString("SchoolTest"));
+            var export = new Export<School>(spec, tableFactory);
+            SqlStuff.WithNewDb("SchoolTest", conn =>
             {
                 var sw = Stopwatch.StartNew();
-                export.Run(Enumerable.Range(0, 10000).Select(_ => school));
+                var tables = export.Run(Enumerable.Range(0, numberOfSchools).Select(_ => school));
                 Console.WriteLine(sw.ElapsedMilliseconds.ToString());
-                GC.Collect();
-            }
+                sw.Restart();
+                tableFactory.Flush();
+                Console.WriteLine(sw.ElapsedMilliseconds.ToString());
+                //Assert.AreEqual(numberOfSchools, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM school"));
+                //Assert.AreEqual(numberOfSchools * 6, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM classes"));
+                //Assert.AreEqual(numberOfSchools * 100, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM students"));
+            });
+
             Console.ReadLine();
+
         }
 
     }

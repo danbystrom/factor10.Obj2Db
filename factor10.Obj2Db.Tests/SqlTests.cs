@@ -14,7 +14,7 @@ namespace factor10.Obj2Db.Tests
     {
         private string _createSql;
         private AllPropertyTypes _data;
-        private Table _table;
+        private ITable _table;
 
         [OneTimeSetUp]
         public void SetUp()
@@ -41,7 +41,11 @@ namespace factor10.Obj2Db.Tests
                 .Add("TheInt64")
                 .Add("TheId")
                 .Add("TheEnum")
-                .Add("TheNullableInt"));
+                .Add("TheNullableInt")
+                .Add("TheStringProperty")
+                .Add("TheInt32Property")
+                .Add("TheNullableInt32Property")
+                , new InMemoryTableService());
             _table = export.Run(_data).Single();
 
             _createSql = SqlStuff.GenerateCreateTable(_table, "");
@@ -51,7 +55,7 @@ namespace factor10.Obj2Db.Tests
         public void TestThatCreateStringIsCorrect()
         {
             Assert.AreEqual(
-                "CREATE TABLE [AllPropertyTypes] ([TheBool] bit not null,[TheString] nvarchar(max),[TheDateTime] datetime not null,[TheDouble] float not null,[TheFloat] float not null,[TheInt16] smallint not null,[TheInt32] integer not null,[TheInt64] bigint not null,[TheId] uniqueidentifier not null,[TheEnum] integer not null,[TheNullableInt] integer)",
+                "[TheInt32] integer not null,[TheInt64] bigint not null,[TheId] uniqueidentifier not null,[TheEnum] integer not null,[TheNullableInt] integer,[TheStringProperty] nvarchar(max),[TheInt32Property] integer not null,[TheNullableInt32Property] integer)",
                 _createSql);
         }
 

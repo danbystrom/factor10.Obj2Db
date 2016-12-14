@@ -26,5 +26,11 @@ namespace factor10.Obj2Db.Tests.TestData
         public Guid TheId;
         public AnEnum TheEnum;
         public int? TheNullableInt;
+
+        public IEnumerable<int> TheIEnumerable;
+
+        public string TheStringProperty { get; } = "Nisse";
+        public int TheInt32Property { get; set; }
+        public int? TheNullableInt32Property { get; set; }
     }
 }

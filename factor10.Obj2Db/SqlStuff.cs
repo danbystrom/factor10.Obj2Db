@@ -102,7 +102,7 @@ namespace factor10.Obj2Db
             return $"[{field.Item1}] {def}" + (notnull ? " not null" : "");
         }
 
-        public static string GenerateCreateTable(Table table, string prefixedColumns)
+        public static string GenerateCreateTable(ITable table, string prefixedColumns)
         {
             return $"CREATE TABLE [{table.Name}] ({prefixedColumns}{string.Join(",", table.Fields.Select(Field2Sql))})";
         }

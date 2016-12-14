@@ -8,9 +8,11 @@ namespace factor10.Obj2Db
     {
         private readonly ConcurrentDictionary<int, Entity> _dic = new ConcurrentDictionary<int, Entity>();
         private readonly Entity _template;
+        private readonly ITableService _tableService;
 
-        public ConcurrentEntityTableDictionary(Entity template)
+        public ConcurrentEntityTableDictionary(ITableService tableService, Entity template)
         {
+            _tableService = tableService;
             _template = template;
         }
 
@@ -19,14 +21,14 @@ namespace factor10.Obj2Db
             Entity entity;
             if (!_dic.TryGetValue(key, out entity))
             {
-                _dic.TryAdd(key, _template.CloneWithNewTables());
+                _dic.TryAdd(key, _template.CloneWithNewTables(_tableService));
                 // note that the one we tried to add is not necessarily the one that we'll get now...
                 _dic.TryGetValue(key, out entity);
             }
             return entity;
         }
 
-        public List<Table> AllTableFragments()
+        public List<ITable> AllTableFragments()
         {
             return _dic.Values.SelectMany(_ => _.AllEntities(false).Select(x => x.Table)).ToList();
         } 
