@@ -46,14 +46,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AggregationTests.cs" />
+    <Compile Include="EnumTests.cs" />
+    <Compile Include="LinkedFieldInfoTests.cs" />
     <Compile Include="SchoolExportTest.cs" />
     <Compile Include="SimpleExportTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SqlTests.cs" />
-    <Compile Include="TestData\AllPropertyTypes.cs" />
-    <Compile Include="TestData\School.cs" />
-    <Compile Include="TestData\SomeStruct.cs" />
-    <Compile Include="TestData\TheTop.cs" />
+    <Compile Include="TestDataStructures\AllPropertyTypes.cs" />
+    <Compile Include="TestDataStructures\ClassToTestEnumerables.cs" />
+    <Compile Include="TestDataStructures\School.cs" />
+    <Compile Include="TestDataStructures\SomeStruct.cs" />
+    <Compile Include="TestDataStructures\TheTop.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\factor10.Obj2Db\factor10.Obj2Db.csproj">

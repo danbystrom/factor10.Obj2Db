@@ -14,41 +14,42 @@ namespace factor10.Obj2Db
 
         public Export(EntitySpec entitySpec, ITableService tableService = null)
         {
-            _entity = new Entity(typeof(T), entitySpec);
+            _entity = new Entity(typeof (T), entitySpec);
             TableService = tableService ?? new InMemoryTableService();
         }
- 
-        public void DumpEntities(int indent, Entity entity = null)
+
+        public void Run(T obj)
         {
-            entity = entity ?? _entity;
-            System.Diagnostics.Debug.Print(new string(' ', indent) + entity.Name + " (" + entity.TypeOfEntity + ")");
-            foreach (var x in entity.Fields)
-                DumpEntities(indent + 1, x);
-            foreach (var x in entity.Lists)
-                DumpEntities(indent + 1, x);
+            Run(new[] {obj});
         }
 
-        public List<ITable> Run(T obj)
-        {
-            return Run(new[] {obj});
-        }
-
-        public List<ITable> Run(IEnumerable<T> objs)
+        public void Run(IEnumerable<T> objs)
         {
             var ed = new ConcurrentEntityTableDictionary(TableService, _entity);
             objs.AsParallel().ForAll(_ =>
             {
                 run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty);
             });
-            return ed.AllTableFragments();
+            TableService.Flush();
         }
 
-        private void run(Entity entity, object obj, Guid parentRowId)
+        private object[] run(Entity entity, object obj, Guid parentRowId)
         {
-            var id = entity.Table.AddRow(parentRowId, entity.GetRow(obj));
-            foreach (var subEntity in entity.Lists)
-                foreach (var itm in (IEnumerable) subEntity.FieldInfo.GetValue(obj))
-                    run(subEntity, itm, id);
+            var pk = Guid.NewGuid();
+            var rowResult = entity.GetRow(obj);
+            foreach (var q in entity.Quark(rowResult))
+            {
+                var subEntity = q.Entity;
+                var enumerable = (IEnumerable) subEntity.FieldInfo.GetValue(obj);
+                if (enumerable != null)
+                    foreach (var itm in enumerable)
+                    {
+                        var subResult = run(subEntity, itm, pk);
+                        q.Update(subResult);
+                    }
+            }
+            entity.Table?.AddRow(pk, parentRowId, rowResult);
+            return rowResult;
         }
 
     }

@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Linq;
 
 namespace factor10.Obj2Db
 {
@@ -16,7 +17,7 @@ namespace factor10.Obj2Db
     {
         private readonly string _connectionString;
 
-        private ConcurrentBag<ITable> _tables = new ConcurrentBag<ITable>();
+        private readonly ConcurrentBag<ITable> _tables = new ConcurrentBag<ITable>();
         private readonly HashSet<string> _createdTables = new HashSet<string>();
 
         public int FlushThreshold = 5000;
@@ -92,9 +93,16 @@ namespace factor10.Obj2Db
 
     public class InMemoryTableService : ITableService
     {
+        public readonly List<Table> Tables = new List<Table>();
+         
         public ITable New(Entity entity, bool hasForeignKey)
         {
-            return new Table(this, entity, hasForeignKey, int.MaxValue);
+            lock (this)
+            {
+                var table = new Table(this, entity, hasForeignKey, int.MaxValue);
+                Tables.Add(table);
+                return table;
+            }
         }
 
         public void Save(ITable table)
@@ -103,6 +111,21 @@ namespace factor10.Obj2Db
 
         public void Flush()
         {
+        }
+
+        public List<ITable> GetMergedTables()
+        {
+            var joined = Tables.ToLookup(_ => _.Name, _ => _);
+            var result = new List<ITable>();
+            foreach (var z in joined)
+            {
+                var tables = z.ToList();
+                for (var i = 1; i < tables.Count; i++)
+                    foreach (var tr in tables[i].Rows)
+                        tables[0].Rows.Add(tr);
+                result.Add(tables[0]);
+            }
+            return result;
         }
 
     }

@@ -8,7 +8,7 @@ namespace factor10.Obj2Db
     public interface ITable
     {
         string Name { get; }
-        Guid AddRow(Guid parentRowId, object[] columns);
+        void AddRow(Guid pk, Guid fk, object[] columns);
         List<TableRow> Rows { get; }
         List<Tuple<string, Type>> Fields { get; }
         bool HasForeignKey { get; }
@@ -21,8 +21,6 @@ namespace factor10.Obj2Db
         public string Name { get; }
         public bool HasForeignKey { get; }
 
-        public readonly Guid Id = Guid.NewGuid();
-
         public List<Tuple<string, Type>> Fields { get; }
         public List<TableRow> Rows { get;} = new List<TableRow>();
 
@@ -34,7 +32,7 @@ namespace factor10.Obj2Db
             _flushThreshold = flushThreshold;
             Name = entity.Name ?? entity.TypeName;
             HasForeignKey = hasForeignKey;
-            Fields = entity.Fields.Select(_ => Tuple.Create(_.ExternalName, _.FieldInfo.FieldType)).ToList();
+            Fields = entity.Fields.Select(_ => Tuple.Create(_.ExternalName, _.FieldInfo.FieldTypeOrInnerIfNullable)).ToList();
         }
 
         public DataTable AsDataTable()
@@ -53,13 +51,13 @@ namespace factor10.Obj2Db
                 if (HasForeignKey)
                     row[idx++] = itm.ParentRow;
                 foreach (var obj in itm.Columns)
-                    row[idx++] = obj;
+                    row[idx++] = obj ?? DBNull.Value;
                 table.Rows.Add(row);
             }
             return table;
         }
 
-        public Guid AddRow(Guid parentRowId, object[] columns)
+        public void AddRow(Guid pk, Guid fk, object[] columns)
         {
             if (columns.Length != Fields.Count)
                 throw new ArgumentException();
@@ -68,9 +66,8 @@ namespace factor10.Obj2Db
                 TableService.Save(this);
                 Rows.Clear();
             }
-            var tableRow = new TableRow(parentRowId) {Columns = columns};
+            var tableRow = new TableRow(pk, fk) {Columns = columns};
             Rows.Add(tableRow);
-            return tableRow.PrimaryKey;
         }
 
     }
@@ -81,9 +78,9 @@ namespace factor10.Obj2Db
         public readonly Guid ParentRow;
         public object[] Columns;
 
-        public TableRow(Guid parentRow)
+        public TableRow(Guid pk, Guid parentRow)
         {
-            PrimaryKey = Guid.NewGuid();
+            PrimaryKey = pk;
             ParentRow = parentRow;
         }
 

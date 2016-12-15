@@ -7,11 +7,29 @@ namespace factor10.Obj2Db
 {
     public class LinkedFieldInfo
     {
+        private static Dictionary<string, Func<IConvertible, object>> _cohersions = new Dictionary<string, Func<IConvertible, object>>
+        {
+            {"Int32", _ => _.ToInt32(null)},
+            {"Int64", _ => _.ToInt64(null)},
+            {"Int16", _ => _.ToInt16(null)},
+            {"Decimal", _ => _.ToDecimal(null)},
+            {"DateTime", _ => _.ToDateTime(null)},
+            {"Double", _ => _.ToDouble(null)},
+            {"Single", _ => _.ToSingle(null)},
+            {"String", _ => _.ToString(null)},
+            {"Boolean", _ => _.ToBoolean(null)},
+            {"Guid", _ => _}
+        };
+
         private readonly FieldInfo _fieldInfo;
         private readonly PropertyInfo _propertyInfo;
         public readonly LinkedFieldInfo Next;
+        public readonly Type IEnumerable;
 
         public Type FieldType { get; private set; }
+        public Type FieldTypeOrInnerIfNullable { get; private set; }
+
+        private readonly Func<IConvertible, object> _coherse;
 
         public LinkedFieldInfo(Type type, string name)
         {
@@ -31,6 +49,20 @@ namespace factor10.Obj2Db
             while (x.Next != null)
                 x = x.Next;
             FieldType = x._fieldInfo?.FieldType ?? x._propertyInfo.PropertyType;
+            IEnumerable = checkForIEnumerable();
+            FieldTypeOrInnerIfNullable = FieldType.IsGenericType && FieldType.GetGenericTypeDefinition() == typeof(Nullable<>)
+                ? Nullable.GetUnderlyingType(FieldType)
+                : FieldType;
+            _cohersions.TryGetValue(FieldTypeOrInnerIfNullable.Name, out _coherse);
+        }
+
+        private Type checkForIEnumerable()
+        {
+            if (FieldType.IsGenericType && FieldType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                return FieldType;
+            return FieldType != typeof(string) // a string implements IEnumerable<Char> - but forget that
+                ? FieldType.GetInterfaces().SingleOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                : null;
         }
 
         private LinkedFieldInfo()
@@ -56,13 +88,10 @@ namespace factor10.Obj2Db
             return Next == null ? value : Next.GetValue(value);
         }
 
-        public Type CheckForIEnumerable()
+        public object CoherseType(object obj)
         {
-            // this need to be checked for nested properties - pretty sure it won't work!!!
-            var ft = _fieldInfo?.FieldType ?? _propertyInfo.PropertyType;
-            return ft != typeof (string) // a string implements IEnumerable<Char> - but forget that
-                ? ft.GetInterfaces().SingleOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof (IEnumerable<>))
-                : null;
+            var iconvertible = obj as IConvertible;
+            return iconvertible != null && _coherse != null ? _coherse(iconvertible) : obj;
         }
 
     }

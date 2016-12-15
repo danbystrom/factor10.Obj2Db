@@ -40,10 +40,9 @@ namespace ConsoleApplication1
             SqlStuff.WithNewDb("SchoolTest", conn =>
             {
                 var sw = Stopwatch.StartNew();
-                var tables = export.Run(Enumerable.Range(0, numberOfSchools).Select(_ => school));
+                export.Run(Enumerable.Range(0, numberOfSchools).Select(_ => school));
                 Console.WriteLine(sw.ElapsedMilliseconds.ToString());
                 sw.Restart();
-                tableFactory.Flush();
                 Console.WriteLine(sw.ElapsedMilliseconds.ToString());
                 //Assert.AreEqual(numberOfSchools, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM school"));
                 //Assert.AreEqual(numberOfSchools * 6, SqlStuff.SimpleQuery<int>(conn, "SELECT count(*) FROM classes"));

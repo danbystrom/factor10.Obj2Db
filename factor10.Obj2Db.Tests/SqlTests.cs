@@ -30,6 +30,7 @@ namespace factor10.Obj2Db.Tests
                 TheInt64 = (long) 1E18,
                 TheBool = true,
             };
+            var t = new InMemoryTableService();
             var export = new Export<AllPropertyTypes>(EntitySpec.Begin()
                 .Add("TheBool")
                 .Add("TheString")
@@ -45,8 +46,9 @@ namespace factor10.Obj2Db.Tests
                 .Add("TheStringProperty")
                 .Add("TheInt32Property")
                 .Add("TheNullableInt32Property")
-                , new InMemoryTableService());
-            _table = export.Run(_data).Single();
+                , t);
+            export.Run(_data);
+            _table = t.GetMergedTables().Single();
 
             _createSql = SqlStuff.GenerateCreateTable(_table, "");
         }
@@ -55,7 +57,7 @@ namespace factor10.Obj2Db.Tests
         public void TestThatCreateStringIsCorrect()
         {
             Assert.AreEqual(
-                "[TheInt32] integer not null,[TheInt64] bigint not null,[TheId] uniqueidentifier not null,[TheEnum] integer not null,[TheNullableInt] integer,[TheStringProperty] nvarchar(max),[TheInt32Property] integer not null,[TheNullableInt32Property] integer)",
+                "CREATE TABLE [AllPropertyTypes] ([TheBool] bit not null,[TheString] nvarchar(max),[TheDateTime] datetime not null,[TheDouble] float not null,[TheFloat] float not null,[TheInt16] smallint not null,[TheInt32] integer not null,[TheInt64] bigint not null,[TheId] uniqueidentifier not null,[TheEnum] integer not null,[TheNullableInt] integer,[TheStringProperty] nvarchar(max),[TheInt32Property] integer not null,[TheNullableInt32Property] integer)",
                 _createSql);
         }
 
