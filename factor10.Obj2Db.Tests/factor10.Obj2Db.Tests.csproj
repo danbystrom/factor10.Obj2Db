@@ -48,6 +48,10 @@
   <ItemGroup>
     <Compile Include="AggregationTests.cs" />
     <Compile Include="EnumTests.cs" />
+    <Compile Include="FormulaTests.cs" />
+    <Compile Include="Formula\EvaluatorTests.cs" />
+    <Compile Include="Formula\EvaluatorWithVariablesTests.cs" />
+    <Compile Include="Formula\RpnTests.cs" />
     <Compile Include="LinkedFieldInfoTests.cs" />
     <Compile Include="SchoolExportTest.cs" />
     <Compile Include="SimpleExportTest.cs" />

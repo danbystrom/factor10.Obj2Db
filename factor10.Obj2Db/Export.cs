@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -40,7 +39,7 @@ namespace factor10.Obj2Db
             foreach (var q in entity.Quark(rowResult))
             {
                 var subEntity = q.Entity;
-                var enumerable = (IEnumerable) subEntity.FieldInfo.GetValue(obj);
+                var enumerable = subEntity.GetIEnumerable(obj);
                 if (enumerable != null)
                     foreach (var itm in enumerable)
                     {

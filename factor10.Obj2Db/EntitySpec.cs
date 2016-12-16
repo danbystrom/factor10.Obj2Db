@@ -12,6 +12,7 @@ namespace factor10.Obj2Db
         public List<EntitySpec> Fields = new List<EntitySpec>();
 
         public string Aggregation;
+        public string formula;
 
         private EntitySpec()
         {
@@ -33,11 +34,19 @@ namespace factor10.Obj2Db
             return this;
         }
 
-        public EntitySpec Aggregate(string formula)
+        public EntitySpec Aggregates(string field)
         {
             if (!Fields.Any())
                 throw new Exception("Can only be called on field");
-            Fields.Last().Aggregation = formula;
+            Fields.Last().Aggregation = field;
+            return this;
+        }
+
+        public EntitySpec Formula(string formula)
+        {
+            if (!Fields.Any())
+                throw new Exception("Can only be called on field");
+            Fields.Last().formula = formula;
             return this;
         }
 

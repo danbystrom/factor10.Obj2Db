@@ -32,7 +32,7 @@ namespace factor10.Obj2Db
             _flushThreshold = flushThreshold;
             Name = entity.Name ?? entity.TypeName;
             HasForeignKey = hasForeignKey;
-            Fields = entity.Fields.Select(_ => Tuple.Create(_.ExternalName, _.FieldInfo.FieldType)).ToList();
+            Fields = entity.Fields.Select(_ => Tuple.Create(_.ExternalName, _.FieldType)).ToList();
         }
 
         public DataTable AsDataTable()
@@ -42,7 +42,7 @@ namespace factor10.Obj2Db
             if (HasForeignKey)
                 table.Columns.Add("fk", typeof (Guid));
             foreach (var field in Fields)
-                table.Columns.Add(field.Item1, field.Item2);
+                table.Columns.Add(field.Item1, LinkedFieldInfo.StripNullable(field.Item2));
             foreach (var itm in Rows)
             {
                 var row = table.NewRow();

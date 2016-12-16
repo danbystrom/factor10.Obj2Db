@@ -15,5 +15,7 @@ namespace factor10.Obj2Db.Tests.TestData
         public List<string> Strings;
         public List<SomeStruct> Structs;
 
+        public List<TheTop> SelfList;
+        public TheTop Self;
     }
 }

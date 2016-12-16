@@ -8,7 +8,7 @@ namespace factor10.Obj2Db
 {
     public class LinkedFieldInfo
     {
-        private static Dictionary<string, Func<IConvertible, object>> _cohersions = new Dictionary<string, Func<IConvertible, object>>
+        private static readonly Dictionary<string, Func<IConvertible, object>> _cohersions = new Dictionary<string, Func<IConvertible, object>>
         {
             {"Int32", _ => _.ToInt32(null)},
             {"Int64", _ => _.ToInt64(null)},
@@ -28,7 +28,6 @@ namespace factor10.Obj2Db
         public readonly Type IEnumerable;
 
         public Type FieldType { get; private set; }
-        public Type FieldTypeOrInnerIfNullable { get; private set; }
 
         private readonly Func<IConvertible, object> _coherse;
 
@@ -53,15 +52,19 @@ namespace factor10.Obj2Db
                 x = x.Next;
             FieldType = x._fieldInfo?.FieldType ?? x._propertyInfo.PropertyType;
             IEnumerable = checkForIEnumerable();
-            FieldTypeOrInnerIfNullable = FieldType.IsGenericType && FieldType.GetGenericTypeDefinition() == typeof(Nullable<>)
-                ? Nullable.GetUnderlyingType(FieldType)
-                : FieldType;
-            _cohersions.TryGetValue(FieldTypeOrInnerIfNullable.Name, out _coherse);
+            _cohersions.TryGetValue(StripNullable(FieldType).Name, out _coherse);
 
             if (_propertyInfo != null)
                 _getValue = generateFastPropertyFetcher(type, _propertyInfo);
             else if (_fieldInfo != null)
                 _getValue = generateFastFieldFetcher(type, _fieldInfo);
+        }
+
+        public static Type StripNullable(Type type = null)
+        {
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)
+                ? Nullable.GetUnderlyingType(type)
+                : type;
         }
 
         private Type checkForIEnumerable()
