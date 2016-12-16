@@ -54,6 +54,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EntitySpec.cs" />
     <Compile Include="SqlStuff.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="EntityDictionary.cs" />

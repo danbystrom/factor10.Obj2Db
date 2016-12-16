@@ -32,7 +32,7 @@ namespace factor10.Obj2Db
             _flushThreshold = flushThreshold;
             Name = entity.Name ?? entity.TypeName;
             HasForeignKey = hasForeignKey;
-            Fields = entity.Fields.Select(_ => Tuple.Create(_.ExternalName, _.FieldInfo.FieldTypeOrInnerIfNullable)).ToList();
+            Fields = entity.Fields.Select(_ => Tuple.Create(_.ExternalName, _.FieldInfo.FieldType)).ToList();
         }
 
         public DataTable AsDataTable()

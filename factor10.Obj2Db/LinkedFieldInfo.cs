@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 
 namespace factor10.Obj2Db
 {
@@ -31,6 +32,8 @@ namespace factor10.Obj2Db
 
         private readonly Func<IConvertible, object> _coherse;
 
+        private readonly Func<object, object> _getValue;
+         
         public LinkedFieldInfo(Type type, string name)
         {
             var split = name.Split(".".ToCharArray(), 2);
@@ -54,6 +57,11 @@ namespace factor10.Obj2Db
                 ? Nullable.GetUnderlyingType(FieldType)
                 : FieldType;
             _cohersions.TryGetValue(FieldTypeOrInnerIfNullable.Name, out _coherse);
+
+            if (_propertyInfo != null)
+                _getValue = generateFastPropertyFetcher(type, _propertyInfo);
+            else if (_fieldInfo != null)
+                _getValue = generateFastFieldFetcher(type, _fieldInfo);
         }
 
         private Type checkForIEnumerable()
@@ -65,16 +73,48 @@ namespace factor10.Obj2Db
                 : null;
         }
 
-        private LinkedFieldInfo()
+        private Func<object, object> generateFastPropertyFetcher(Type type, PropertyInfo propertyInfo)
         {
+            var method = new DynamicMethod("", typeof(object), new[] { typeof(object) }, type, true);
+            var il = method.GetILGenerator();
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Castclass, type);
+            if (type.IsValueType)
+                il.Emit(OpCodes.Unbox, type);
+            il.Emit(OpCodes.Callvirt, propertyInfo.GetGetMethod());
+            if (propertyInfo.PropertyType.IsValueType)
+                il.Emit(OpCodes.Box, propertyInfo.PropertyType);
+            il.Emit(OpCodes.Ret);
+            return (Func<object, object>)method.CreateDelegate(typeof(Func<object, object>));
+        }
+
+        private Func<object, object> generateFastFieldFetcher(Type type, FieldInfo fieldInfo)
+        {
+            var method = new DynamicMethod("", typeof(object), new[] { typeof(object) }, type, true);
+            var il = method.GetILGenerator();
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Castclass, type);
+            if (type.IsValueType)
+                il.Emit(OpCodes.Unbox, type);
+            il.Emit(OpCodes.Ldfld, fieldInfo);
+            if (fieldInfo.FieldType.IsValueType)
+                il.Emit(OpCodes.Box, fieldInfo.FieldType);
+            il.Emit(OpCodes.Ret);
+            return (Func<object, object>)method.CreateDelegate(typeof(Func<object, object>));
+        }
+
+        private LinkedFieldInfo(Type type)
+        {
+            FieldType = type;
+            _getValue = _ => _;
         }
 
         public static LinkedFieldInfo Null(Type type)
         {
-            return new LinkedFieldInfo {FieldType = type};
+            return new LinkedFieldInfo(type);
         }
 
-        public object GetValue(object obj)
+        public object GetValueSlower(object obj)
         {
             if (obj == null)
                 return null;
@@ -85,6 +125,15 @@ namespace factor10.Obj2Db
                 value = _propertyInfo.GetValue(obj);
             else
                 return obj;
+
+            return Next == null ? value : Next.GetValue(value);
+        }
+
+        public object GetValue(object obj)
+        {
+            if (obj == null)
+                return null;
+            var value = _getValue(obj);
             return Next == null ? value : Next.GetValue(value);
         }
 

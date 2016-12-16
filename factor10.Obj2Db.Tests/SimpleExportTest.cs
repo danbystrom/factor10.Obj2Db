@@ -47,6 +47,7 @@ namespace factor10.Obj2Db.Tests
                 .Add(EntitySpec.Begin("Structs")
                     .Add("X")
                     .Add("Y")), t);
+            export.Run(_td);
             var table = t.GetMergedTables().Last();
             CollectionAssert.AreEquivalent(new[] {5, 6, 7, 8}, table.Rows.SelectMany(_ => _.Columns));
         }
