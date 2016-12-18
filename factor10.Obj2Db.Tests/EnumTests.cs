@@ -51,7 +51,7 @@ namespace factor10.Obj2Db.Tests
             };
             c.DeeperF = c;
             c.DeeperP = c;
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<ClassToTestEnumerables>(_spec, t);
             export.Run(c);
             var tables = t.GetMergedTables().ToDictionary(_ => _.Name, _ => _.Rows);

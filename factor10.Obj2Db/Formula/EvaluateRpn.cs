@@ -59,6 +59,14 @@ namespace factor10.Obj2Db.Formula
                     Operator.EqLt, () => calcBinary((x, y) => x <= y ? 1 : 0,
                         (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) <= 0 ? 1 : 0))
                 },
+                {
+                    Operator.Gt, () => calcBinary((x, y) => x > y ? 1 : 0,
+                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) > 0 ? 1 : 0))
+                },
+                {
+                    Operator.EqGt, () => calcBinary((x, y) => x >= y ? 1 : 0,
+                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) >= 0 ? 1 : 0))
+                },
             };
 
             _operatorEvaluator = new Action[operatorEvaluator.Keys.Max(_ => (int) _) + 1];
@@ -74,7 +82,7 @@ namespace factor10.Obj2Db.Formula
                     var x = entityFields.FindIndex(_ => _.Item1 == itm.Name);
                     if (x < 0)
                         throw new ArgumentException($"Unknown varable '{itm.Name}'");
-                    _original[i] = new RpnItemOperandNumeric2(() => (double) _variables[x]);
+                    _original[i] = new RpnItemOperandNumeric2(() => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0);
                 }
 
         }
@@ -88,6 +96,8 @@ namespace factor10.Obj2Db.Formula
 
             var functionEvaluator = new Dictionary<string, Action>
             {
+                {"min", funcMin},
+                {"max", funcMax},
                 {"first", funcFirst},
                 {"tail", funcTail},
             };
@@ -133,6 +143,26 @@ namespace factor10.Obj2Db.Formula
             while (i > 1 && result == null)
                 result = peekStr(--i);
             _work[_i] = _work[_i - i];
+        }
+
+        private void funcMin()
+        {
+            var argCount = ((RpnItemFunction)_work[_i]).ArgumentCount;
+            var result = double.MaxValue;
+            var i = argCount + 1;
+            while (i > 1)
+                result = Math.Min(result, peekNum(--i));
+            _work[_i] = new RpnItemOperandNumeric(result);
+        }
+
+        private void funcMax()
+        {
+            var argCount = ((RpnItemFunction)_work[_i]).ArgumentCount;
+            var result = double.MinValue;
+            var i = argCount + 1;
+            while (i > 1)
+                result = Math.Max(result, peekNum(--i));
+            _work[_i] = new RpnItemOperandNumeric(result);
         }
 
         private void calcBinary(Func<double, double, double> funcNum, Func<string, string, RpnItemOperand> funcStr = null)

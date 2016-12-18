@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="AggregationTests.cs" />
     <Compile Include="EnumTests.cs" />
+    <Compile Include="WhereFilteringTests.cs" />
     <Compile Include="FormulaTests.cs" />
     <Compile Include="Formula\EvaluatorTests.cs" />
     <Compile Include="Formula\EvaluatorWithVariablesTests.cs" />

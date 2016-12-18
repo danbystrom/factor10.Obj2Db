@@ -6,13 +6,14 @@ namespace factor10.Obj2Db
 {
     public class EntitySpec
     {
-        public string Name;
-        public string ExternalName;
-        public bool NoSave;
+        public string name;
+        public string externalname;
+        public bool nosave;
         public List<EntitySpec> Fields = new List<EntitySpec>();
 
-        public string Aggregation;
+        public string aggregation;
         public string formula;
+        public string where;
 
         private EntitySpec()
         {
@@ -22,15 +23,15 @@ namespace factor10.Obj2Db
 
         public static EntitySpec Begin(string name = null, string externalName = null)
         {
-            return new EntitySpec { Name = name, ExternalName = externalName };
+            return new EntitySpec { name = name, externalname = externalName };
         }
 
         public EntitySpec NotSaved()
         {
             if (Fields.Any())
-                Fields.Last().NoSave = true;
+                Fields.Last().nosave = true;
             else
-                NoSave = true;
+                nosave = true;
             return this;
         }
 
@@ -38,15 +39,23 @@ namespace factor10.Obj2Db
         {
             if (!Fields.Any())
                 throw new Exception("Can only be called on field");
-            Fields.Last().Aggregation = field;
+            Fields.Last().aggregation = field;
             return this;
         }
 
-        public EntitySpec Formula(string formula)
+        public EntitySpec Formula(string expression)
         {
             if (!Fields.Any())
                 throw new Exception("Can only be called on field");
-            Fields.Last().formula = formula;
+            Fields.Last().formula = expression;
+            return this;
+        }
+
+        public EntitySpec Where(string whereClause)
+        {
+            if (Fields.Any())
+                throw new Exception("Can only be called on list");
+            where = whereClause;
             return this;
         }
 
@@ -58,7 +67,7 @@ namespace factor10.Obj2Db
 
         public static implicit operator EntitySpec(string name)
         {
-            return new EntitySpec { Name = name };
+            return new EntitySpec { name = name };
         }
 
     }

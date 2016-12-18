@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using factor10.Obj2Db.Tests.TestData;
 using NUnit.Framework;
 
@@ -30,13 +27,14 @@ namespace factor10.Obj2Db.Tests
                 TheInt64 = (long) 1E18,
                 TheBool = true,
             };
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<AllPropertyTypes>(EntitySpec.Begin()
                 .Add("TheBool")
                 .Add("TheString")
                 .Add("TheDateTime")
                 .Add("TheDouble")
                 .Add("TheFloat")
+                .Add("TheDecimal")
                 .Add("TheInt16")
                 .Add("TheInt32")
                 .Add("TheInt64")
@@ -56,9 +54,26 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatCreateStringIsCorrect()
         {
-            Assert.AreEqual(
-                "CREATE TABLE [AllPropertyTypes] ([TheBool] bit not null,[TheString] nvarchar(max),[TheDateTime] datetime not null,[TheDouble] float not null,[TheFloat] float not null,[TheInt16] smallint not null,[TheInt32] integer not null,[TheInt64] bigint not null,[TheId] uniqueidentifier not null,[TheEnum] integer not null,[TheNullableInt] integer,[TheStringProperty] nvarchar(max),[TheInt32Property] integer not null,[TheNullableInt32Property] integer)",
-                _createSql);
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    "CREATE TABLE [AllPropertyTypes] ([TheBool] bit not null",
+                    "[TheString] nvarchar(max)",
+                    "[TheDateTime] datetime not null",
+                    "[TheDouble] float not null",
+                    "[TheFloat] float not null",
+                    "[TheDecimal] float not null",
+                    "[TheInt16] smallint not null",
+                    "[TheInt32] integer not null",
+                    "[TheInt64] bigint not null",
+                    "[TheId] uniqueidentifier not null",
+                    "[TheEnum] integer not null",
+                    "[TheNullableInt] integer",
+                    "[TheStringProperty] nvarchar(max)",
+                    "[TheInt32Property] integer not null",
+                    "[TheNullableInt32Property] integer)"
+                },
+                _createSql.Split(",".ToCharArray()));
         }
 
         [Test]

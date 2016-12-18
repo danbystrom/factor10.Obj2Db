@@ -44,7 +44,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSchoolExample()
         {
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<School>(_spec, t);
             export.Run(_school);
             var tables = t.GetMergedTables();
@@ -57,7 +57,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void Test100Schools()
         {
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<School>(_spec, t);
             var sw = Stopwatch.StartNew();
             export.Run(Enumerable.Range(0, 100).Select(_ => _school));
@@ -90,7 +90,7 @@ namespace factor10.Obj2Db.Tests
         [Test, Explicit]
         public void Test10000Schools()
         {
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<School>(_spec, t);
             var sw = Stopwatch.StartNew();
             export.Run(Enumerable.Range(0, 10000).Select(_ => _school));

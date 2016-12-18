@@ -15,16 +15,20 @@ namespace factor10.Obj2Db
         Formula
     }
 
-
     public class Entity
     {
-        public readonly string Name;
+        public readonly EntitySpec Spec;
+
+        public string Name => Spec.name;
         public readonly string ExternalName;
         public readonly string TypeName;
         public LinkedFieldInfo FieldInfo { get; }
         public TypeOfEntity TypeOfEntity { get; private set; }
 
         public readonly List<Entity> Fields = new List<Entity>();
+        private readonly List<Entity> _plainFields = new List<Entity>();
+        private readonly List<Entity> _formulaFields = new List<Entity>();
+
         public readonly int SaveableFieldCount;
         private List<Entity> _lists = new List<Entity>();
 
@@ -32,10 +36,9 @@ namespace factor10.Obj2Db
 
         public Type FieldType;
 
-        public ITable Table;
+        public int ResultSetIndex;
 
-        public string Aggregation;
-        public string Formula;
+        public ITable Table;
 
         public List<Tuple<int, int>> TemporaryAggregationMapper = new List<Tuple<int, int>>();
 
@@ -43,7 +46,7 @@ namespace factor10.Obj2Db
 
         private Entity(string name, LinkedFieldInfo fieldInfo)
         {
-            Name = name;
+            Spec = EntitySpec.Begin(name);
             ExternalName = name?.Replace(".", "");
             FieldInfo = fieldInfo;
             TypeOfEntity = TypeOfEntity.PlainField;
@@ -51,13 +54,11 @@ namespace factor10.Obj2Db
 
         public Entity(Type type, EntitySpec entitySpec)
         {
-            Name = entitySpec.Name;
-            ExternalName = entitySpec.ExternalName ?? Name?.Replace(".", "");
-            NoSave = entitySpec.NoSave;
-            Aggregation = entitySpec.Aggregation;
-            Formula = entitySpec.formula;
+            Spec = entitySpec;
+            ExternalName = entitySpec.externalname ?? Name?.Replace(".", "");
+            NoSave = entitySpec.nosave;
 
-            if (!string.IsNullOrEmpty(Aggregation))
+            if (!string.IsNullOrEmpty(Spec.aggregation))
                 TypeOfEntity = TypeOfEntity.Aggregation;
             else if (!string.IsNullOrEmpty(entitySpec.formula))
                 TypeOfEntity = TypeOfEntity.Formula;
@@ -82,7 +83,7 @@ namespace factor10.Obj2Db
 
             foreach (var subEntitySpec in entitySpec.Fields)
             {
-                subEntitySpec.NoSave |= NoSave; // propagate NoSave all the way down until we reach turtles
+                subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
                 var subEntity = new Entity(type, subEntitySpec);
                 (subEntity.TypeOfEntity == TypeOfEntity.IEnumerable ? _lists : Fields).Add(subEntity);
             }
@@ -99,7 +100,7 @@ namespace factor10.Obj2Db
                 var field = Fields[fi];
                 if (field.TypeOfEntity != TypeOfEntity.Aggregation)
                     continue;
-                var agg = field.Aggregation;
+                var agg = field.Spec.aggregation;
                 var subEntity = _lists.FirstOrDefault(_ => agg.StartsWith(_.Name + "."));
                 if (subEntity == null)
                     throw new Exception($"Unable to find subentity for aggregation '{agg}'");
@@ -111,17 +112,13 @@ namespace factor10.Obj2Db
                 field.FieldType = subEntity.Fields[subFieldIndex].FieldType;
             }
 
+            var fieldInfoForEvaluator = Fields.Select(_ => Tuple.Create(_.Name, _.FieldType)).ToList();
             //...and to construct the evaluators
-            for (var fi = 0; fi < Fields.Count; fi++)
-            {
-                var field = Fields[fi];
-                if (field.TypeOfEntity != TypeOfEntity.Formula)
-                    continue;
-                field._evaluator = new EvaluateRpn(
-                    new Rpn(field.Formula),
-                    Fields.Select(_ => Tuple.Create(_.Name, _.FieldType)).ToList());
-            }
+            foreach (var field in Fields.Where(field => field.TypeOfEntity == TypeOfEntity.Formula))
+                field._evaluator = new EvaluateRpn(new Rpn(field.Spec.formula), fieldInfoForEvaluator);
 
+            if (TypeOfEntity == TypeOfEntity.IEnumerable && !string.IsNullOrEmpty(Spec.where))
+                _evaluator = new EvaluateRpn(new Rpn(Spec.where), fieldInfoForEvaluator);
         }
 
         public IEnumerable GetIEnumerable(object obj)
@@ -162,7 +159,7 @@ namespace factor10.Obj2Db
             return clone;
         }
 
-        public IEnumerable<Aggregator> Quark(object[] result)
+        public IEnumerable<Aggregator> GetSubEntitities(object[] result)
         {
             foreach (var list in _lists)
             {
@@ -170,6 +167,13 @@ namespace factor10.Obj2Db
                 yield return aggragator;
                 aggragator.CoherseAggregatedValues();
             }
+        }
+
+        public bool FilterOk(object[] rowResult)
+        {
+            if (TypeOfEntity != TypeOfEntity.IEnumerable || _evaluator == null)
+                return true;
+            return _evaluator.Eval(rowResult).Numeric > 0;
         }
 
     }
@@ -187,7 +191,7 @@ namespace factor10.Obj2Db
                 Result[p.Item2] = 0.0;
         }
 
-        public void Update(object[] subResult)
+        public void UpdateWith(object[] subResult)
         {
             foreach (var p in Entity.TemporaryAggregationMapper)
             {

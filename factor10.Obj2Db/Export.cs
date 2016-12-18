@@ -36,18 +36,19 @@ namespace factor10.Obj2Db
         {
             var pk = Guid.NewGuid();
             var rowResult = entity.GetRow(obj);
-            foreach (var q in entity.Quark(rowResult))
+            foreach (var aggregator in entity.GetSubEntitities(rowResult))
             {
-                var subEntity = q.Entity;
+                var subEntity = aggregator.Entity;
                 var enumerable = subEntity.GetIEnumerable(obj);
                 if (enumerable != null)
                     foreach (var itm in enumerable)
                     {
                         var subResult = run(subEntity, itm, pk);
-                        q.Update(subResult);
+                        aggregator.UpdateWith(subResult);
                     }
             }
-            entity.Table?.AddRow(pk, parentRowId, rowResult);
+            if(entity.FilterOk(rowResult))
+                entity.Table?.AddRow(pk, parentRowId, rowResult);
             return rowResult;
         }
 

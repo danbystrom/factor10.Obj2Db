@@ -20,6 +20,7 @@ namespace factor10.Obj2Db.Tests.TestData
         public short TheInt16;
         public float TheFloat;
         public double TheDouble;
+        public double TheDecimal;
         public DateTime TheDateTime;
         public bool TheBool;
         public long TheInt64;

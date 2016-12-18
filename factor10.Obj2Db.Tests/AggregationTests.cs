@@ -35,7 +35,7 @@ namespace factor10.Obj2Db.Tests
                     SelfList = new List<TheTop> {new TheTop {Double = 42}, new TheTop {Double = 43}}
                 }
             };
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<TheTop>(spec, t);
             export.Run(theTop);
             _tables = t.GetMergedTables();

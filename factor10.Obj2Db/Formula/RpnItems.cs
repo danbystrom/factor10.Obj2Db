@@ -114,7 +114,7 @@ namespace factor10.Obj2Db.Formula
             ")",
             ",",
             "?",
-            "==",
+            "=",
             "!=",
             ">",
             "<",

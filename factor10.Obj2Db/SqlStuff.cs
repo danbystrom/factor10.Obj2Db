@@ -80,7 +80,7 @@ namespace factor10.Obj2Db
                 {"System.Int32", "integer"},
                 {"System.Int64", "bigint"},
                 {"System.Int16", "smallint"},
-                {"System.Decimal", "decimal"},
+                {"System.Decimal", "float"},
                 {"System.DateTime", "datetime"},
                 {"System.Double", "float"},
                 {"System.Single", "float"},

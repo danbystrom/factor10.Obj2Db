@@ -117,6 +117,15 @@ namespace factor10.Obj2Db.Tests.Formula
         }
 
         [Test]
+        public void TestEqualOp()
+        {
+            var rpn = new Rpn("84=85");
+            var eval = new EvaluateRpn(rpn);
+            var value = eval.Eval();
+            Assert.AreEqual(0, value.Numeric);
+        }
+
+        [Test]
         public void TestVariables()
         {
             var rpn = new Rpn("3+(a+q)/(2+2)+3");
