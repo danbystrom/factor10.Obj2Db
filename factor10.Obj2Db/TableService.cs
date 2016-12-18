@@ -91,7 +91,7 @@ namespace factor10.Obj2Db
 
     }
 
-    public class InMemoryTableService : ITableService
+    public class InMemoryTableManager : ITableService
     {
         public readonly List<Table> Tables = new List<Table>();
          

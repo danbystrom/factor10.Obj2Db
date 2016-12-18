@@ -19,7 +19,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimpleProperties()
         {
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<TheTop>(EntitySpec.Begin()
                 .Add("FirstName")
                 .Add("SomeStruct.X"), t);
@@ -31,7 +31,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimplePropertiesAndIEnumerableOverPrimitive()
         {
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<TheTop>(EntitySpec.Begin()
                 .Add("Strings"), t);
             export.Run(_td);
@@ -42,7 +42,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimplePropertiesAndIEnumerableOverStruct()
         {
-            var t = new InMemoryTableService();
+            var t = new InMemoryTableManager();
             var export = new Export<TheTop>(EntitySpec.Begin()
                 .Add(EntitySpec.Begin("Structs")
                     .Add("X")

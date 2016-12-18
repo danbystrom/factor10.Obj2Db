@@ -14,7 +14,7 @@ namespace factor10.Obj2Db
         public Export(EntitySpec entitySpec, ITableService tableService = null)
         {
             _entity = new Entity(typeof (T), entitySpec);
-            TableService = tableService ?? new InMemoryTableService();
+            TableService = tableService ?? new InMemoryTableManager();
         }
 
         public void Run(T obj)

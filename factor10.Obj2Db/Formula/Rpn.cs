@@ -123,15 +123,22 @@ namespace factor10.Obj2Db.Formula
                 return new RpnItemFunction(x);
             }
 
-            if (Expression[_i++] == '\"')
+            switch (Expression[_i++])
             {
-                var start = _i;
-                while (Expression[++_i] != '\"')
-                    ;
-                return new RpnItemOperandString(Expression.Substring(start, ++_i - start - 1));
+                case '\"':
+                case '\'':
+                    return getString(Expression[_i - 1]);
             }
 
             return null;
+        }
+
+        private RpnItem getString(char terminator)
+        {
+            var start = _i;
+            while (Expression[++_i] != terminator)
+                ;
+            return new RpnItemOperandString(Expression.Substring(start, ++_i - start - 1));
         }
 
         private bool moveToNextNonWhiteSpace()

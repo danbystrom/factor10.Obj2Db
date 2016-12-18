@@ -58,12 +58,15 @@ namespace factor10.Obj2Db.Formula
 
     public class RpnItemOperandString : RpnItemOperand
     {
-        public readonly string Value;
+        public virtual string Value { get; }
 
         public RpnItemOperandString(string value)
         {
             Value = value;
         }
+
+        protected RpnItemOperandString()
+        { }
 
         public override string ToString()
         {
@@ -114,7 +117,7 @@ namespace factor10.Obj2Db.Formula
             ")",
             ",",
             "?",
-            "=",
+            "==",
             "!=",
             ">",
             "<",

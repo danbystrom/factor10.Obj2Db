@@ -29,8 +29,23 @@ namespace factor10.Obj2Db.Formula
                 return String;
             }
 
-            public override double Numeric => Value;
-            public override string String => Value.ToString(CultureInfo.InvariantCulture);
+       }
+
+        public class RpnItemOperandString2 : RpnItemOperandString
+        {
+            private readonly Func<string> _accessor;
+            public override string String => _accessor();
+
+            public RpnItemOperandString2(Func<string> accessor)
+            {
+                _accessor = accessor;
+            }
+
+            public override string ToString()
+            {
+                return String;
+            }
+
         }
 
         public EvaluateRpn(
@@ -48,9 +63,12 @@ namespace factor10.Obj2Db.Formula
                 {Operator.Multiplication, () => calcBinary((x, y) => x*y)},
                 {Operator.Addition, () => calcBinary((x, y) => x + y, (x, y) => new RpnItemOperandString(x + y))},
                 {Operator.And, () => calcBinary((x, y) => (x != 0) && (y != 0) ? 1 : 0)},
-                {Operator.Equal, () => calcBinary((x, y) => x == y ? 1 : 0, (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) == 0 ? 1 : 0))},
                 {Operator.Or, () => calcBinary((x, y) => (x != 0) || (y != 0) ? 1 : 0)},
                 {Operator.Question, calcQuestion},
+                {
+                    Operator.Equal, () => calcBinary((x, y) => x == y ? 1 : 0,
+                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) == 0 ? 1 : 0))
+                },
                 {
                     Operator.Lt, () => calcBinary((x, y) => x < y ? 1 : 0,
                         (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) < 0 ? 1 : 0))
@@ -67,6 +85,10 @@ namespace factor10.Obj2Db.Formula
                     Operator.EqGt, () => calcBinary((x, y) => x >= y ? 1 : 0,
                         (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) >= 0 ? 1 : 0))
                 },
+                {
+                    Operator.NotEqual, () => calcBinary((x, y) => x != y ? 1 : 0,
+                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) != 0 ? 1 : 0))
+                },
             };
 
             _operatorEvaluator = new Action[operatorEvaluator.Keys.Max(_ => (int) _) + 1];
@@ -82,7 +104,10 @@ namespace factor10.Obj2Db.Formula
                     var x = entityFields.FindIndex(_ => _.Item1 == itm.Name);
                     if (x < 0)
                         throw new ArgumentException($"Unknown varable '{itm.Name}'");
-                    _original[i] = new RpnItemOperandNumeric2(() => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0);
+                    if(entityFields[x].Item2==typeof(string))
+                        _original[i] = new RpnItemOperandString2(() => _variables[x]?.ToString());
+                    else
+                        _original[i] = new RpnItemOperandNumeric2(() => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0);
                 }
 
         }

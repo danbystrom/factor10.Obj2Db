@@ -119,10 +119,60 @@ namespace factor10.Obj2Db.Tests.Formula
         [Test]
         public void TestEqualOp()
         {
-            var rpn = new Rpn("84=85");
+            var rpn = new Rpn("84==85");
             var eval = new EvaluateRpn(rpn);
             var value = eval.Eval();
             Assert.AreEqual(0, value.Numeric);
+        }
+
+        public void TestNotEqualOp()
+        {
+            var rpn = new Rpn("84!=85");
+            var eval = new EvaluateRpn(rpn);
+            var value = eval.Eval();
+            Assert.AreEqual(1, value.Numeric);
+        }
+
+        public void TestNotEqualOp2()
+        {
+            var rpn = new Rpn("85!=85");
+            var eval = new EvaluateRpn(rpn);
+            var value = eval.Eval();
+            Assert.AreEqual(0, value.Numeric);
+        }
+
+        public void TestNotEqualOpStr()
+        {
+            var rpn = new Rpn("''hej'!='då'");
+            var eval = new EvaluateRpn(rpn);
+            var value = eval.Eval();
+            Assert.AreEqual(1, value.Numeric);
+        }
+
+        [TestCase(43, 0)]
+        [TestCase(42, 1)]
+        public void TestEqualOp(double variableValue, double expected)
+        {
+            var rpn = new Rpn("Url==42");
+            Assert.AreEqual("Url 42 ==", rpn.ToString());
+
+            var eval = new EvaluateRpn(rpn, new List<Tuple<string, Type>>
+            {Tuple.Create("Url", typeof (double))});
+            var value = eval.Eval(new object[] { variableValue });
+            Assert.AreEqual(expected, value.Numeric);
+        }
+
+        [TestCase("www", 0)]
+        [TestCase("why", 1)]
+        public void TestNotEqualOp2Str(string variableValue, double expected)
+        {
+            var rpn = new Rpn("Url!='www'");
+            Assert.AreEqual("Url \"www\" !=", rpn.ToString());
+
+            var eval = new EvaluateRpn(rpn, new List<Tuple<string, Type>>
+            {Tuple.Create("Url", typeof (string))});
+            var value = eval.Eval(new object[] { variableValue });
+            Assert.AreEqual(expected, value.Numeric);
         }
 
         [Test]

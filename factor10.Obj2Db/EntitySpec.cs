@@ -37,7 +37,7 @@ namespace factor10.Obj2Db
 
         public EntitySpec Aggregates(string field)
         {
-            if (!Fields.Any())
+            if (!string.IsNullOrEmpty(field) && !Fields.Any())
                 throw new Exception("Can only be called on field");
             Fields.Last().aggregation = field;
             return this;
@@ -45,7 +45,7 @@ namespace factor10.Obj2Db
 
         public EntitySpec Formula(string expression)
         {
-            if (!Fields.Any())
+            if (!string.IsNullOrEmpty(expression) && !Fields.Any())
                 throw new Exception("Can only be called on field");
             Fields.Last().formula = expression;
             return this;
@@ -53,8 +53,8 @@ namespace factor10.Obj2Db
 
         public EntitySpec Where(string whereClause)
         {
-            if (Fields.Any())
-                throw new Exception("Can only be called on list");
+            if (!string.IsNullOrEmpty(whereClause) && Fields.Any())
+                throw new Exception("Where can only be called on list");
             where = whereClause;
             return this;
         }

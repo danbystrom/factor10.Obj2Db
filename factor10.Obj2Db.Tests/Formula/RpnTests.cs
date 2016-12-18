@@ -186,29 +186,29 @@ namespace factor10.Obj2Db.Tests.Formula
         [Test]
         public void TestEqualOp()
         {
-            var rpn = new Rpn("2+5=3+7");
-            Assert.AreEqual("2 5 + 3 7 + =", rpn.ToString());
+            var rpn = new Rpn("2+5==3+7");
+            Assert.AreEqual("2 5 + 3 7 + ==", rpn.ToString());
         }
 
         [Test]
         public void TestQuestionOp()
         {
-            var rpn = new Rpn("i=2 ? nisse");
-            Assert.AreEqual("i 2 = nisse ?", rpn.ToString());
+            var rpn = new Rpn("i==2 ? nisse");
+            Assert.AreEqual("i 2 == nisse ?", rpn.ToString());
         }
 
         [Test]
         public void TestStringConstant()
         {
-            var rpn = new Rpn("len(\"nisse\")=5");
-            Assert.AreEqual("\"nisse\" len( 5 =", rpn.ToString());
+            var rpn = new Rpn("len(\"nisse\")==5");
+            Assert.AreEqual("\"nisse\" len( 5 ==", rpn.ToString());
         }
         
         [Test]
         public void TestJimmysExpression()
         {
-            var rpn = new Rpn("first(i1=0 ? a1, i1=1 ? tail(a2,\",\"))");
-            Assert.AreEqual("i1 0 = a1 ? i1 1 = a2 \",\" tail( ? first(", rpn.ToString());
+            var rpn = new Rpn("first(i1==0 ? a1, i1==1 ? tail(a2,\",\"))");
+            Assert.AreEqual("i1 0 == a1 ? i1 1 == a2 \",\" tail( ? first(", rpn.ToString());
         }
 
         [Test]
