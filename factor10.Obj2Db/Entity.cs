@@ -22,25 +22,19 @@ namespace factor10.Obj2Db
         public string Name => Spec.name;
         public readonly string ExternalName;
         public readonly string TypeName;
-        public LinkedFieldInfo FieldInfo { get; }
-        public TypeOfEntity TypeOfEntity { get; private set; }
+        public readonly LinkedFieldInfo FieldInfo;
+        public readonly TypeOfEntity TypeOfEntity;
 
         public readonly List<Entity> Fields = new List<Entity>();
-        private readonly List<Entity> _plainFields = new List<Entity>();
-        private readonly List<Entity> _formulaFields = new List<Entity>();
 
         public readonly int SaveableFieldCount;
-        public List<Entity> Lists { get; private set; } = new List<Entity>();
+        public List<Entity> Lists { get; } = new List<Entity>();
 
         public readonly bool NoSave;
 
-        public Type FieldType;
+        public Type FieldType { get; private set; }
 
-        public int ResultSetIndex;
-
-        public ITable Table;
-
-        public List<Tuple<int, int>> TemporaryAggregationMapper = new List<Tuple<int, int>>();
+        public readonly List<Tuple<int, int>> TemporaryAggregationMapper = new List<Tuple<int, int>>();
 
         private EvaluateRpn _evaluator;
 
@@ -127,14 +121,14 @@ namespace factor10.Obj2Db
             }
         }
 
-        private static IEnumerable<Entity> expansionOverStar(Type type, EntitySpec subEntitySpec)
+        private static IEnumerable<Entity> expansionOverStar(Type type, EntitySpec subEntitySpec, string prefix = "")
         {
             if (subEntitySpec.name != "*")
                 yield return new Entity(type, subEntitySpec);
             else
                 foreach (var nameAndType in getAllFieldsAndProperties(type))
                 {
-                    var spec = EntitySpec.Begin(nameAndType.Name);
+                    var spec = EntitySpec.Begin(prefix + nameAndType.Name);
                     var subProperties = getAllFieldsAndProperties(nameAndType.Type);
                     var ienumerableType = LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type);
                     if (ienumerableType != null || !subProperties.Any())
@@ -144,6 +138,7 @@ namespace factor10.Obj2Db
                         yield return new Entity(type, spec);
                     }
 
+                    // i don't think this is sufficient... works for only one level i think
                     foreach (var liftedSubProperty in subProperties)
                         foreach (var z in expansionOverStar(type, $"{nameAndType.Name}.{liftedSubProperty.Name}"))
                             yield return z;
@@ -179,26 +174,7 @@ namespace factor10.Obj2Db
             return result;
         }
 
-        public IEnumerable<Entity> AllEntities(bool includeFields)
-        {
-            yield return this;
-            if (includeFields)
-                foreach (var x in Fields.SelectMany(_ => _.AllEntities(true)))
-                    yield return x;
-            foreach (var x in Lists.SelectMany(_ => _.AllEntities(includeFields)))
-                yield return x;
-        }
-
-        public Entity CloneWithNewTables(ITableManager tableManager, bool hasForeignKey = false)
-        {
-            var clone = (Entity) MemberwiseClone();
-            if (clone.TypeOfEntity != TypeOfEntity.PlainField && !NoSave)
-                clone.Table = tableManager.New(this, hasForeignKey);
-            clone.Lists = clone.Lists.Select(_ => _.CloneWithNewTables(tableManager, true)).ToList();
-            return clone;
-        }
-
-        public bool FilterOk(object[] rowResult)
+        public bool PassesFilter(object[] rowResult)
         {
             if (TypeOfEntity != TypeOfEntity.Class || _evaluator == null)
                 return true;

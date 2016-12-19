@@ -6,7 +6,7 @@ namespace factor10.Obj2Db
 {
     public class ConcurrentEntityTableDictionary
     {
-        private readonly ConcurrentDictionary<int, Entity> _dic = new ConcurrentDictionary<int, Entity>();
+        private readonly ConcurrentDictionary<int, EntityWithTable> _dic = new ConcurrentDictionary<int, EntityWithTable>();
         private readonly Entity _template;
         private readonly ITableManager _tableManager;
 
@@ -16,12 +16,12 @@ namespace factor10.Obj2Db
             _template = template;
         }
 
-        public Entity GetOrNew(int key)
+        public EntityWithTable GetOrNew(int key)
         {
-            Entity entity;
+            EntityWithTable entity;
             if (!_dic.TryGetValue(key, out entity))
             {
-                _dic.TryAdd(key, _template.CloneWithNewTables(_tableManager));
+                _dic.TryAdd(key, new EntityWithTable(_template, _tableManager));
                 // note that the one we tried to add is not necessarily the one that we'll get now...
                 _dic.TryGetValue(key, out entity);
             }
@@ -30,7 +30,7 @@ namespace factor10.Obj2Db
 
         public List<ITable> AllTableFragments()
         {
-            return _dic.Values.SelectMany(_ => _.AllEntities(false).Select(x => x.Table)).ToList();
+            return _dic.Values.SelectMany(_ => _.Lists.Select(x => x.Table)).ToList();
         } 
 
     }

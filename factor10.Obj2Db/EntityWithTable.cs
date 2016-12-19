@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 
 namespace factor10.Obj2Db
 {
@@ -11,14 +8,15 @@ namespace factor10.Obj2Db
         public readonly Entity Entity;
         public readonly ITable Table;
 
-        public readonly List<EntityWithTable> List = new List<EntityWithTable>();
-         
-        public EntityWithTable(Entity entity, ITableManager t)
+        public readonly List<EntityWithTable> Lists = new List<EntityWithTable>();
+
+        public EntityWithTable(Entity entity, ITableManager t, bool hasFk = false)
         {
             Entity = entity;
-            Table = new Table(t, entity, false, 3);
+            if (!Entity.NoSave)
+                Table = t.New(entity, hasFk);
             foreach (var e in entity.Lists)
-                List.Add(new EntityWithTable(e, t));
+                Lists.Add(new EntityWithTable(e, t, true));
         }
 
     }

@@ -32,14 +32,14 @@ namespace factor10.Obj2Db
             TableManager.Flush();
         }
 
-        private object[] run(Entity entity, object obj, Guid parentRowId)
+        private object[] run(EntityWithTable entity, object obj, Guid parentRowId)
         {
             var pk = Guid.NewGuid();
-            var rowResult = entity.GetRow(obj);
+            var rowResult = entity.Entity.GetRow(obj);
             foreach (var aggregator in getSubEntitities(entity, rowResult))
             {
-                var subEntity = aggregator.Entity;
-                var enumerable = subEntity.GetIEnumerable(obj);
+                var subEntity = aggregator.EntityWithTable;
+                var enumerable = subEntity.Entity.GetIEnumerable(obj);
                 if (enumerable != null)
                     foreach (var itm in enumerable)
                     {
@@ -47,12 +47,12 @@ namespace factor10.Obj2Db
                         aggregator.UpdateWith(subResult);
                     }
             }
-            if(entity.FilterOk(rowResult))
+            if(entity.Entity.PassesFilter(rowResult))
                 entity.Table?.AddRow(pk, parentRowId, rowResult);
             return rowResult;
         }
 
-        private IEnumerable<Aggregator> getSubEntitities(Entity entity, object[] result)
+        private IEnumerable<Aggregator> getSubEntitities(EntityWithTable entity, object[] result)
         {
             foreach (var list in entity.Lists)
             {
@@ -67,19 +67,19 @@ namespace factor10.Obj2Db
     public class Aggregator
     {
         public object[] Result;
-        public Entity Entity;
+        public EntityWithTable EntityWithTable;
 
-        public Aggregator(Entity entity, object[] result)
+        public Aggregator(EntityWithTable entityWithTable, object[] result)
         {
-            Entity = entity;
+            EntityWithTable = entityWithTable;
             Result = result;
-            foreach (var p in Entity.TemporaryAggregationMapper)
+            foreach (var p in EntityWithTable.Entity.TemporaryAggregationMapper)
                 Result[p.Item2] = 0.0;
         }
 
         public void UpdateWith(object[] subResult)
         {
-            foreach (var p in Entity.TemporaryAggregationMapper)
+            foreach (var p in EntityWithTable.Entity.TemporaryAggregationMapper)
             {
                 var r = (Result[p.Item2] as IConvertible)?.ToDouble(null) ?? 0;
                 Result[p.Item2] = r + (subResult[p.Item1] as IConvertible)?.ToDouble(null) ?? 0;
@@ -88,8 +88,8 @@ namespace factor10.Obj2Db
 
         public void CoherseAggregatedValues()
         {
-            foreach (var p in Entity.TemporaryAggregationMapper)
-                Result[p.Item2] = Entity.Fields[p.Item1].FieldInfo.CoherseType(Result[p.Item2]);
+            foreach (var p in EntityWithTable.Entity.TemporaryAggregationMapper)
+                Result[p.Item2] = EntityWithTable.Entity.Fields[p.Item1].FieldInfo.CoherseType(Result[p.Item2]);
         }
 
     }
