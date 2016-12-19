@@ -27,7 +27,6 @@ namespace factor10.Obj2Db.Tests
                 TheInt64 = (long) 1E18,
                 TheBool = true,
             };
-            var t = new InMemoryTableManager();
             var export = new Export<AllPropertyTypes>(EntitySpec.Begin()
                 .Add("TheBool")
                 .Add("TheString")
@@ -44,9 +43,9 @@ namespace factor10.Obj2Db.Tests
                 .Add("TheStringProperty")
                 .Add("TheInt32Property")
                 .Add("TheNullableInt32Property")
-                , t);
+                );
             export.Run(_data);
-            _table = t.GetMergedTables().Single();
+            _table = export.TableManager.GetWithAllData().Single();
 
             _createSql = SqlStuff.GenerateCreateTable(_table, "");
         }

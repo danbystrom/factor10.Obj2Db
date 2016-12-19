@@ -19,36 +19,33 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimpleProperties()
         {
-            var t = new InMemoryTableManager();
             var export = new Export<TheTop>(EntitySpec.Begin()
                 .Add("FirstName")
-                .Add("SomeStruct.X"), t);
+                .Add("SomeStruct.X"));
             export.Run(_td);
-            var tables = t.GetMergedTables();
+            var tables = export.TableManager.GetWithAllData();
             CollectionAssert.AreEqual(new object[] {"nisse", 3}, tables.Single().Rows.Single().Columns);
         }
 
         [Test]
         public void TestSimplePropertiesAndIEnumerableOverPrimitive()
         {
-            var t = new InMemoryTableManager();
             var export = new Export<TheTop>(EntitySpec.Begin()
-                .Add("Strings"), t);
+                .Add("Strings"));
             export.Run(_td);
-            var table = t.GetMergedTables().Last();
+            var table = export.TableManager.GetWithAllData().Last();
             CollectionAssert.AreEquivalent(_td.Strings, table.Rows.SelectMany(_ => _.Columns));
         }
 
         [Test]
         public void TestSimplePropertiesAndIEnumerableOverStruct()
         {
-            var t = new InMemoryTableManager();
             var export = new Export<TheTop>(EntitySpec.Begin()
                 .Add(EntitySpec.Begin("Structs")
                     .Add("X")
-                    .Add("Y")), t);
+                    .Add("Y")));
             export.Run(_td);
-            var table = t.GetMergedTables().Last();
+            var table = export.TableManager.GetWithAllData().Last();
             CollectionAssert.AreEquivalent(new[] {5, 6, 7, 8}, table.Rows.SelectMany(_ => _.Columns));
         }
 

@@ -36,10 +36,9 @@ namespace factor10.Obj2Db.Tests
                     new TheTop {SomeStruct = new SomeStruct {X = 16, Y = 13}},
                 }
             };
-            var tm = new InMemoryTableManager();
-            var export = new Export<TheTop>(spec, tm);
+            var export = new Export<TheTop>(spec);
             export.Run(theTop);
-            var tables = tm.GetMergedTables();
+            var tables = export.TableManager.GetWithAllData();
             var filteredTable = tables.Single(_ => _.Name == "SelfList");
             Assert.AreEqual(expectedRowCount, filteredTable.Rows.Count);
         }
@@ -88,10 +87,9 @@ namespace factor10.Obj2Db.Tests
                         .Add("FirstName")
                         .Add("LastName")));
 
-            var tm = new InMemoryTableManager();
-            var export = new Export<School>(spec, tm);
+            var export = new Export<School>(spec);
             export.Run(school);
-            var tables = tm.GetMergedTables();
+            var tables = export.TableManager.GetWithAllData();
             var classesTable = tables.Single(_ => _.Name == "Classes");
             var studentsTable = tables.Single(_ => _.Name == "Students");
             Assert.AreEqual(2, classesTable.Rows.Count);

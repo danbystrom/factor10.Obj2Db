@@ -10,29 +10,29 @@ namespace factor10.Obj2Db
         string Name { get; }
         void AddRow(Guid pk, Guid fk, object[] columns);
         List<TableRow> Rows { get; }
-        List<Tuple<string, Type>> Fields { get; }
+        List<NameAndType> Fields { get; }
         bool HasForeignKey { get; }
     }
 
     public class Table : ITable
     {
-        public ITableService TableService;
+        public ITableManager TableManager;
 
         public string Name { get; }
         public bool HasForeignKey { get; }
 
-        public List<Tuple<string, Type>> Fields { get; }
+        public List<NameAndType> Fields { get; }
         public List<TableRow> Rows { get;} = new List<TableRow>();
 
         private readonly int _flushThreshold;
 
-        public Table(ITableService tableService, Entity entity, bool hasForeignKey, int flushThreshold)
+        public Table(ITableManager tableManager, Entity entity, bool hasForeignKey, int flushThreshold)
         {
-            TableService = tableService;
+            TableManager = tableManager;
             _flushThreshold = flushThreshold;
             Name = entity.Name ?? entity.TypeName;
             HasForeignKey = hasForeignKey;
-            Fields = entity.Fields.Select(_ => Tuple.Create(_.ExternalName, _.FieldType)).ToList();
+            Fields = entity.Fields.Select(_ => new NameAndType(_.ExternalName, _.FieldType)).ToList();
         }
 
         public DataTable AsDataTable()
@@ -42,7 +42,7 @@ namespace factor10.Obj2Db
             if (HasForeignKey)
                 table.Columns.Add("fk", typeof (Guid));
             foreach (var field in Fields)
-                table.Columns.Add(field.Item1, LinkedFieldInfo.StripNullable(field.Item2));
+                table.Columns.Add(field.Name, LinkedFieldInfo.StripNullable(field.Type));
             foreach (var itm in Rows)
             {
                 var row = table.NewRow();
@@ -63,7 +63,7 @@ namespace factor10.Obj2Db
                 throw new ArgumentException();
             if (Rows.Count >= _flushThreshold)
             {
-                TableService.Save(this);
+                TableManager.Save(this);
                 Rows.Clear();
             }
             var tableRow = new TableRow(pk, fk) {Columns = columns};

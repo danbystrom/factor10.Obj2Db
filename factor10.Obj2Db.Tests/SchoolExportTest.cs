@@ -44,10 +44,9 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSchoolExample()
         {
-            var t = new InMemoryTableManager();
-            var export = new Export<School>(_spec, t);
+            var export = new Export<School>(_spec);
             export.Run(_school);
-            var tables = t.GetMergedTables();
+            var tables = export.TableManager.GetWithAllData();
             Assert.AreEqual(1, tables.Single(_ => _.Name == "School").Rows.Count);
             Assert.AreEqual(6, tables.Single(_ => _.Name == "Classes").Rows.Count);
             Assert.AreEqual(100, tables.Single(_ => _.Name == "Students").Rows.Count);
@@ -57,12 +56,11 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void Test100Schools()
         {
-            var t = new InMemoryTableManager();
-            var export = new Export<School>(_spec, t);
+            var export = new Export<School>(_spec);
             var sw = Stopwatch.StartNew();
             export.Run(Enumerable.Range(0, 100).Select(_ => _school));
             Console.Write(sw.ElapsedMilliseconds.ToString());
-            var tables = t.GetMergedTables();
+            var tables = export.TableManager.GetWithAllData();
             Assert.AreEqual(100, tables.Single(_ => _.Name == "School").Rows.Count);
             Assert.AreEqual(600, tables.Single(_ => _.Name == "Classes").Rows.Count);
             Assert.AreEqual(10000, tables.Single(_ => _.Name == "Students").Rows.Count);
@@ -72,7 +70,7 @@ namespace factor10.Obj2Db.Tests
         public void Save100SchoolsToDb()
         {
             const int numberOfSchools = 100;
-            var tableFactory = new SqlTableService(SqlStuff.ConnectionString("SchoolTest"));
+            var tableFactory = new SqlTableManager(SqlStuff.ConnectionString("SchoolTest"));
             var export = new Export<School>(_spec, tableFactory);
             SqlStuff.WithNewDb("SchoolTest", conn =>
             {
@@ -90,12 +88,11 @@ namespace factor10.Obj2Db.Tests
         [Test, Explicit]
         public void Test10000Schools()
         {
-            var t = new InMemoryTableManager();
-            var export = new Export<School>(_spec, t);
+            var export = new Export<School>(_spec);
             var sw = Stopwatch.StartNew();
             export.Run(Enumerable.Range(0, 10000).Select(_ => _school));
             Console.Write(sw.ElapsedMilliseconds.ToString());
-            var tables = t.GetMergedTables();
+            var tables = export.TableManager.GetWithAllData();
             Assert.AreEqual(10000, tables.Single(_ => _.Name == "School").Rows.Count);
             Assert.AreEqual(60000, tables.Single(_ => _.Name == "Classes").Rows.Count);
             Assert.AreEqual(1000000, tables.Single(_ => _.Name == "Students").Rows.Count);

@@ -72,9 +72,9 @@ namespace factor10.Obj2Db
             return (T) SimpleQuery(conn, query)[0];
         }
 
-        public static string Field2Sql(Tuple<string, Type> field)
+        public static string Field2Sql(NameAndType field)
         {
-            var type = field.Item2;
+            var type = field.Type;
             var dic = new Dictionary<string, string>
             {
                 {"System.Int32", "integer"},
@@ -99,7 +99,7 @@ namespace factor10.Obj2Db
             string def;
             if (!dic.TryGetValue(type.ToString(), out def))
                 throw new Exception($"Unhandled column type '{type}'");
-            return $"[{field.Item1}] {def}" + (notnull ? " not null" : "");
+            return $"[{field.Name}] {def}" + (notnull ? " not null" : "");
         }
 
         public static string GenerateCreateTable(ITable table, string prefixedColumns)

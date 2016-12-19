@@ -35,7 +35,7 @@ namespace ConsoleApplication1
 
 
             const int numberOfSchools = 10000;
-            var tableFactory = new SqlTableService(SqlStuff.ConnectionString("SchoolTest"));
+            var tableFactory = new SqlTableManager(SqlStuff.ConnectionString("SchoolTest"));
             var export = new Export<School>(spec, tableFactory);
             SqlStuff.WithNewDb("SchoolTest", conn =>
             {

@@ -13,11 +13,12 @@ namespace factor10.Obj2Db
 
         public readonly List<EntityWithTable> List = new List<EntityWithTable>();
          
-        public EntityWithTable(Entity entity, ITableService t)
+        public EntityWithTable(Entity entity, ITableManager t)
         {
-            //Entity = entity;
-            //Table = new Table(t);
-            //foreach(var e in entity.)
+            Entity = entity;
+            Table = new Table(t, entity, false, 3);
+            foreach (var e in entity.Lists)
+                List.Add(new EntityWithTable(e, t));
         }
 
     }

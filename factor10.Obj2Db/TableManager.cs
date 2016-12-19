@@ -6,14 +6,15 @@ using System.Linq;
 
 namespace factor10.Obj2Db
 {
-    public interface ITableService
+    public interface ITableManager
     {
         ITable New(Entity entity, bool hasForeignKey);
         void Save(ITable table);
         void Flush();
+        List<ITable> GetWithAllData();
     }
 
-    public class SqlTableService : ITableService
+    public class SqlTableManager : ITableManager
     {
         private readonly string _connectionString;
 
@@ -22,7 +23,7 @@ namespace factor10.Obj2Db
 
         public int FlushThreshold = 5000;
 
-        public SqlTableService(string connectionString)
+        public SqlTableManager(string connectionString)
         {
             _connectionString = connectionString;
         }
@@ -73,6 +74,11 @@ namespace factor10.Obj2Db
                     }
         }
 
+        public List<ITable> GetWithAllData()
+        {
+            throw new NotImplementedException();
+        }
+
         private void ensureTableCreated(SqlConnection conn, Table table)
         {
             lock (this)
@@ -91,7 +97,7 @@ namespace factor10.Obj2Db
 
     }
 
-    public class InMemoryTableManager : ITableService
+    public class InMemoryTableManager : ITableManager
     {
         public readonly List<Table> Tables = new List<Table>();
          
@@ -113,7 +119,7 @@ namespace factor10.Obj2Db
         {
         }
 
-        public List<ITable> GetMergedTables()
+        public List<ITable> GetWithAllData()
         {
             var joined = Tables.ToLookup(_ => _.Name, _ => _);
             var result = new List<ITable>();

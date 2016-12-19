@@ -48,6 +48,9 @@
   <ItemGroup>
     <Compile Include="AggregationTests.cs" />
     <Compile Include="EnumTests.cs" />
+    <Compile Include="NameAndType.cs" />
+    <Compile Include="StarTests.cs" />
+    <Compile Include="TestDataStructures\SneakyList.cs" />
     <Compile Include="WhereFilteringTests.cs" />
     <Compile Include="FormulaTests.cs" />
     <Compile Include="Formula\EvaluatorTests.cs" />

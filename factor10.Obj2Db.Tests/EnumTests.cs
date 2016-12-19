@@ -54,7 +54,7 @@ namespace factor10.Obj2Db.Tests
             var t = new InMemoryTableManager();
             var export = new Export<ClassToTestEnumerables>(_spec, t);
             export.Run(c);
-            var tables = t.GetMergedTables().ToDictionary(_ => _.Name, _ => _.Rows);
+            var tables = export.TableManager.GetWithAllData().ToDictionary(_ => _.Name, _ => _.Rows);
             tables.Remove("ClassToTestEnumerables");
             Assert.IsTrue(tables.Values.All(_ => _.Count == 2));
         }

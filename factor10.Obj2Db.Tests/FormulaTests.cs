@@ -16,10 +16,9 @@ namespace factor10.Obj2Db.Tests
                 .Add("nisse").Formula("5*6")
                 .Add("sture").Formula("kalle+nisse");
 
-            var t = new InMemoryTableManager();
-            var export = new Export<TheTop>(spec, t);
+            var export = new Export<TheTop>(spec);
             export.Run(new TheTop {Double = 4});
-            CollectionAssert.AreEqual(new[] {4.0, 7.0, 30.0, 37.0}, t.GetMergedTables().Single().Rows.Single().Columns);
+            CollectionAssert.AreEqual(new[] {4.0, 7.0, 30.0, 37.0}, export.TableManager.GetWithAllData().Single().Rows.Single().Columns);
         }
 
     }

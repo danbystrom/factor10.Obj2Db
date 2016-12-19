@@ -36,10 +36,10 @@ namespace factor10.Obj2Db
         public LinkedFieldInfo(Type type, string name)
         {
             var split = name.Split(".".ToCharArray(), 2);
-            _fieldInfo = type.GetField(split[0], BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            _fieldInfo = type.GetField(split[0], BindingFlags.Public | BindingFlags.Instance);
             if (_fieldInfo == null)
             {
-                _propertyInfo = type.GetProperty(split[0], BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                _propertyInfo = type.GetProperty(split[0], BindingFlags.Public | BindingFlags.Instance);
                 if (_propertyInfo == null)
                     throw new ArgumentException($"Field or property '{name}' not found in type '{type.Name}'");
                 if (split.Length > 1)
@@ -51,7 +51,7 @@ namespace factor10.Obj2Db
             while (x.Next != null)
                 x = x.Next;
             FieldType = x._fieldInfo?.FieldType ?? x._propertyInfo.PropertyType;
-            IEnumerable = checkForIEnumerable();
+            IEnumerable = CheckForIEnumerable(FieldType);
             _cohersions.TryGetValue(StripNullable(FieldType).Name, out _coherse);
 
             if (_propertyInfo != null)
@@ -67,12 +67,12 @@ namespace factor10.Obj2Db
                 : type;
         }
 
-        private Type checkForIEnumerable()
+        public static Type CheckForIEnumerable(Type type)
         {
-            if (FieldType.IsGenericType && FieldType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                return FieldType;
-            return FieldType != typeof(string) // a string implements IEnumerable<Char> - but forget that
-                ? FieldType.GetInterfaces().SingleOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+                return type;
+            return type != typeof (string) && type != typeof (byte[]) // a string implements IEnumerable<Char> - but forget that
+                ? type.GetInterfaces().SingleOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof (IEnumerable<>))
                 : null;
         }
 

@@ -38,7 +38,7 @@ namespace factor10.Obj2Db.Tests
             var t = new InMemoryTableManager();
             var export = new Export<TheTop>(spec, t);
             export.Run(theTop);
-            _tables = t.GetMergedTables();
+            _tables = export.TableManager.GetWithAllData();
 
             _topTable = _tables.Single(_ => _.Name == "TheTop");
             _selfListTable = _tables.Single(_ => _.Name == "SelfList");
@@ -53,7 +53,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatAllFieldsAreInToTable()
         {
-            CollectionAssert.AreEqual(new[] {"FirstName", "AggregatedX", "AggregatedDouble"}, _topTable.Fields.Select(_ => _.Item1));
+            CollectionAssert.AreEqual(new[] {"FirstName", "AggregatedX", "AggregatedDouble"}, _topTable.Fields.Select(_ => _.Name));
         }
 
         [Test]

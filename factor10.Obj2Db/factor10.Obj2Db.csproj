@@ -59,6 +59,7 @@
     <Compile Include="Formula\Rpn.cs" />
     <Compile Include="Formula\RpnItems.cs" />
     <Compile Include="Formula\EvaluateRpn.cs" />
+    <Compile Include="NameAndType.cs" />
     <Compile Include="SqlStuff.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="EntityDictionary.cs" />
@@ -66,7 +67,7 @@
     <Compile Include="LinkedFieldInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Table.cs" />
-    <Compile Include="TableService.cs" />
+    <Compile Include="TableManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

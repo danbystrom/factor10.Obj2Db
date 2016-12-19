@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using factor10.Obj2Db.Formula;
 
 namespace factor10.Obj2Db
@@ -10,7 +11,6 @@ namespace factor10.Obj2Db
     {
         Class,
         PlainField,
-        IEnumerable,
         Aggregation,
         Formula
     }
@@ -30,7 +30,7 @@ namespace factor10.Obj2Db
         private readonly List<Entity> _formulaFields = new List<Entity>();
 
         public readonly int SaveableFieldCount;
-        private List<Entity> _lists = new List<Entity>();
+        public List<Entity> Lists { get; private set; } = new List<Entity>();
 
         public readonly bool NoSave;
 
@@ -60,35 +60,31 @@ namespace factor10.Obj2Db
 
             if (!string.IsNullOrEmpty(Spec.aggregation))
                 TypeOfEntity = TypeOfEntity.Aggregation;
-            else if (!string.IsNullOrEmpty(entitySpec.formula))
+            else if (!string.IsNullOrEmpty(Spec.formula))
                 TypeOfEntity = TypeOfEntity.Formula;
-            else if (Name != null)
+            else if (Name == null)
+                Spec = EntitySpec.Begin(type.Name);
+            else
             {
                 FieldInfo = new LinkedFieldInfo(type, Name);
                 FieldType = FieldInfo.FieldType;
                 if (FieldInfo.IEnumerable != null)
                 {
-                    TypeOfEntity = TypeOfEntity.IEnumerable;
                     type = FieldInfo.IEnumerable.GetGenericArguments()[0];
-                    if (entitySpec.IsField)
+                    if (entitySpec.IsField || (entitySpec.Fields.First().name == "*" && !getAllFieldsAndProperties(type).Any()))
                         Fields.Add(new Entity(null, LinkedFieldInfo.Null(type)));
                 }
                 else if (entitySpec.IsField)
                     TypeOfEntity = TypeOfEntity.PlainField;
                 else
-                    TypeOfEntity = TypeOfEntity.Class;
+                    throw new Exception("Unknown error");
             }
 
             TypeName = type.Name;
 
-            foreach (var subEntitySpec in entitySpec.Fields)
-            {
-                subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
-                var subEntity = new Entity(type, subEntitySpec);
-                (subEntity.TypeOfEntity == TypeOfEntity.IEnumerable ? _lists : Fields).Add(subEntity);
-            }
+            breakDownSubEntities(type, entitySpec);
 
-            // sort the nosave fields to be at the end of the list - this feature is not completed and has no tests
+            // move the nosave fields to be at the end of the list - this feature is not completed and has no tests
             var noSaveFields = Fields.Where(_ => _.NoSave).ToList();
             Fields.RemoveAll(_ => _.NoSave);
             SaveableFieldCount = Fields.Count;
@@ -101,7 +97,7 @@ namespace factor10.Obj2Db
                 if (field.TypeOfEntity != TypeOfEntity.Aggregation)
                     continue;
                 var agg = field.Spec.aggregation;
-                var subEntity = _lists.FirstOrDefault(_ => agg.StartsWith(_.Name + "."));
+                var subEntity = Lists.FirstOrDefault(_ => agg.StartsWith(_.Name + "."));
                 if (subEntity == null)
                     throw new Exception($"Unable to find subentity for aggregation '{agg}'");
                 var subFieldName = agg.Substring(subEntity.Name.Length + 1);
@@ -112,13 +108,56 @@ namespace factor10.Obj2Db
                 field.FieldType = subEntity.Fields[subFieldIndex].FieldType;
             }
 
-            var fieldInfoForEvaluator = Fields.Select(_ => Tuple.Create(_.Name, _.FieldType)).ToList();
+            var fieldInfosForEvaluator = Fields.Select(_ => Tuple.Create(_.Name, _.FieldType)).ToList();
             //...and to construct the evaluators
             foreach (var field in Fields.Where(field => field.TypeOfEntity == TypeOfEntity.Formula))
-                field._evaluator = new EvaluateRpn(new Rpn(field.Spec.formula), fieldInfoForEvaluator);
+                field._evaluator = new EvaluateRpn(new Rpn(field.Spec.formula), fieldInfosForEvaluator);
 
-            if (TypeOfEntity == TypeOfEntity.IEnumerable && !string.IsNullOrEmpty(Spec.where))
-                _evaluator = new EvaluateRpn(new Rpn(Spec.where), fieldInfoForEvaluator);
+            if (TypeOfEntity == TypeOfEntity.Class && !string.IsNullOrEmpty(Spec.where))
+                _evaluator = new EvaluateRpn(new Rpn(Spec.where), fieldInfosForEvaluator);
+        }
+
+        private void breakDownSubEntities(Type type, EntitySpec entitySpec)
+        {
+            foreach (var subEntitySpec in entitySpec.Fields)
+            {
+                subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
+                foreach (var subEntity in expansionOverStar(type, subEntitySpec))
+                    (subEntity.TypeOfEntity == TypeOfEntity.Class ? Lists : Fields).Add(subEntity);
+            }
+        }
+
+        private static IEnumerable<Entity> expansionOverStar(Type type, EntitySpec subEntitySpec)
+        {
+            if (subEntitySpec.name != "*")
+                yield return new Entity(type, subEntitySpec);
+            else
+                foreach (var nameAndType in getAllFieldsAndProperties(type))
+                {
+                    var spec = EntitySpec.Begin(nameAndType.Name);
+                    var subProperties = getAllFieldsAndProperties(nameAndType.Type);
+                    var ienumerableType = LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type);
+                    if (ienumerableType != null || !subProperties.Any())
+                    {
+                        if (ienumerableType != null)
+                            spec.Add("*");
+                        yield return new Entity(type, spec);
+                    }
+
+                    foreach (var liftedSubProperty in subProperties)
+                        foreach (var z in expansionOverStar(type, $"{nameAndType.Name}.{liftedSubProperty.Name}"))
+                            yield return z;
+                }
+        }
+
+        private static List<NameAndType> getAllFieldsAndProperties(Type type)
+        {
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.GetGetMethod().IsSpecialName);
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.IsSpecialName);
+            var list = new List<NameAndType>();
+            list.AddRange(properties.Select(_ => new NameAndType(_)));
+            list.AddRange(fields.Select(_ => new NameAndType(_)));
+            return list;
         }
 
         public IEnumerable GetIEnumerable(object obj)
@@ -146,65 +185,26 @@ namespace factor10.Obj2Db
             if (includeFields)
                 foreach (var x in Fields.SelectMany(_ => _.AllEntities(true)))
                     yield return x;
-            foreach (var x in _lists.SelectMany(_ => _.AllEntities(includeFields)))
+            foreach (var x in Lists.SelectMany(_ => _.AllEntities(includeFields)))
                 yield return x;
         }
 
-        public Entity CloneWithNewTables(ITableService tableService, bool hasForeignKey = false)
+        public Entity CloneWithNewTables(ITableManager tableManager, bool hasForeignKey = false)
         {
             var clone = (Entity) MemberwiseClone();
             if (clone.TypeOfEntity != TypeOfEntity.PlainField && !NoSave)
-                clone.Table = tableService.New(this, hasForeignKey);
-            clone._lists = clone._lists.Select(_ => _.CloneWithNewTables(tableService, true)).ToList();
+                clone.Table = tableManager.New(this, hasForeignKey);
+            clone.Lists = clone.Lists.Select(_ => _.CloneWithNewTables(tableManager, true)).ToList();
             return clone;
-        }
-
-        public IEnumerable<Aggregator> GetSubEntitities(object[] result)
-        {
-            foreach (var list in _lists)
-            {
-                var aggragator = new Aggregator(list, result);
-                yield return aggragator;
-                aggragator.CoherseAggregatedValues();
-            }
         }
 
         public bool FilterOk(object[] rowResult)
         {
-            if (TypeOfEntity != TypeOfEntity.IEnumerable || _evaluator == null)
+            if (TypeOfEntity != TypeOfEntity.Class || _evaluator == null)
                 return true;
             return _evaluator.Eval(rowResult).Numeric > 0;
         }
 
-    }
-
-    public class Aggregator
-    {
-        public object[] Result;
-        public Entity Entity;
-
-        public Aggregator(Entity entity, object[] result)
-        {
-            Entity = entity;
-            Result = result;
-            foreach (var p in Entity.TemporaryAggregationMapper)
-                Result[p.Item2] = 0.0;
-        }
-
-        public void UpdateWith(object[] subResult)
-        {
-            foreach (var p in Entity.TemporaryAggregationMapper)
-            {
-                var r = (Result[p.Item2] as IConvertible)?.ToDouble(null);
-                Result[p.Item2] = r + (subResult[p.Item1] as IConvertible)?.ToDouble(null);
-            }
-        }
-
-        public void CoherseAggregatedValues()
-        {
-            foreach (var p in Entity.TemporaryAggregationMapper)
-                Result[p.Item2] = Entity.Fields[p.Item1].FieldInfo.CoherseType(Result[p.Item2]);
-        }
     }
 
 }
