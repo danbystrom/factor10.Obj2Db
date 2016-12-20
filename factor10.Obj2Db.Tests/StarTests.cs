@@ -67,6 +67,7 @@ namespace factor10.Obj2Db.Tests
             Assert.IsFalse(sub.Any());
         }
 
+
     }
 
     public class MoreStarTests
@@ -98,13 +99,73 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatTheTopTableHasCorrectData()
         {
-            CollectionAssert.AreEquivalent(new[] {12, 19,  56 }, _topTable.Rows.Single().Columns);
+            CollectionAssert.AreEqual(new[] {12, 19,  56 }, _topTable.Rows.Single().Columns);
         }
 
         [Test]
         public void TestThatTheSubTableHasCorrectData()
         {
             CollectionAssert.AreEquivalent(new[] { "Straight", "to", "the", "heart" }, _subTable.Rows.Select(_ => _.Columns.Single()));
+        }
+
+    }
+
+    public class DeepStarTests
+    {
+        private Entity _entity;
+        private ITable _topTable;
+
+        [OneTimeSetUp]
+        public void SetUp()
+        {
+            var spec = EntitySpec.Begin().Add("*");
+            var tm = new InMemoryTableManager();
+            var export = new Export<DeepDeclaration>(spec, tm);
+            _entity = export.Entity;
+
+            var dd = new DeepDeclaration
+            {
+                TheFirst = new Level2 {X1 = new Level3 {Ss1 = new SomeStruct {X = 78}}},
+                TheSecond = new Level2 {X2 = new Level3 {Ss2 = new SomeStruct {Y = 79}}},
+            };
+            export.Run(dd);
+            var table = export.TableManager.GetWithAllData();
+            _topTable = table.Single();
+        }
+
+        [Test]
+        public void Test()
+        {
+            CollectionAssert.AreEqual(new[]
+            {
+                "TheFirst.X1.Ss1.X",
+                "TheFirst.X1.Ss1.Y",
+                "TheFirst.X1.Ss2.X",
+                "TheFirst.X1.Ss2.Y",
+                "TheFirst.X2.Ss1.X",
+                "TheFirst.X2.Ss1.Y",
+                "TheFirst.X2.Ss2.X",
+                "TheFirst.X2.Ss2.Y",
+                "TheSecond.X1.Ss1.X",
+                "TheSecond.X1.Ss1.Y",
+                "TheSecond.X1.Ss2.X",
+                "TheSecond.X1.Ss2.Y",
+                "TheSecond.X2.Ss1.X",
+                "TheSecond.X2.Ss1.Y",
+                "TheSecond.X2.Ss2.X",
+                "TheSecond.X2.Ss2.Y",
+            }, _entity.Fields.Select(_ => _.Name));
+        }
+
+        [Test]
+        public void TestThatTheTopTableHasCorrectData()
+        {
+            CollectionAssert.AreEqual(new object[] { 78, 0, 0, 0, null, null, null, null, null, null, null, null, 0, 0, 0, 79}, _topTable.Rows.Single().Columns);
+        }
+
+        [Test]
+        public void TestThatTheSubTableHasCorrectData()
+        {
         }
 
     }

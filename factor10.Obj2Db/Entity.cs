@@ -26,11 +26,14 @@ namespace factor10.Obj2Db
         public readonly TypeOfEntity TypeOfEntity;
 
         public readonly List<Entity> Fields = new List<Entity>();
+        private readonly Entity[] _plainFields;
+        private readonly Entity[] _formulaFields;
 
         public readonly int SaveableFieldCount;
         public List<Entity> Lists { get; } = new List<Entity>();
 
         public readonly bool NoSave;
+        public int ResultSetIndex { get; private set; }
 
         public Type FieldType { get; private set; }
 
@@ -109,6 +112,11 @@ namespace factor10.Obj2Db
 
             if (TypeOfEntity == TypeOfEntity.Class && !string.IsNullOrEmpty(Spec.where))
                 _evaluator = new EvaluateRpn(new Rpn(Spec.where), fieldInfosForEvaluator);
+
+            for (var i = 0; i < Fields.Count; i++)
+                Fields[i].ResultSetIndex = i;
+            _plainFields = Fields.Where(_ => _.TypeOfEntity == TypeOfEntity.PlainField).ToArray();
+            _formulaFields = Fields.Where(_ => _.TypeOfEntity == TypeOfEntity.Formula).ToArray();
         }
 
         private void breakDownSubEntities(Type type, EntitySpec entitySpec)
@@ -116,33 +124,57 @@ namespace factor10.Obj2Db
             foreach (var subEntitySpec in entitySpec.Fields)
             {
                 subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
-                foreach (var subEntity in expansionOverStar(type, subEntitySpec))
+                foreach (var subEntity in expansionOverStar(type, subEntitySpec, new HashSet<Type>()))
                     (subEntity.TypeOfEntity == TypeOfEntity.Class ? Lists : Fields).Add(subEntity);
             }
         }
 
-        private static IEnumerable<Entity> expansionOverStar(Type type, EntitySpec subEntitySpec, string prefix = "")
+        private static IEnumerable<Entity> expansionOverStar(
+            Type masterType, 
+            EntitySpec subEntitySpec, 
+            HashSet<Type> haltRecursion, 
+            string prefix = "",
+            Type subType = null)
         {
             if (subEntitySpec.name != "*")
-                yield return new Entity(type, subEntitySpec);
-            else
-                foreach (var nameAndType in getAllFieldsAndProperties(type))
-                {
-                    var spec = EntitySpec.Begin(prefix + nameAndType.Name);
-                    var subProperties = getAllFieldsAndProperties(nameAndType.Type);
-                    var ienumerableType = LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type);
-                    if (ienumerableType != null || !subProperties.Any())
-                    {
-                        if (ienumerableType != null)
-                            spec.Add("*");
-                        yield return new Entity(type, spec);
-                    }
+            {
+                yield return new Entity(masterType, subEntitySpec);
+                yield break;
+            }
 
-                    // i don't think this is sufficient... works for only one level i think
-                    foreach (var liftedSubProperty in subProperties)
-                        foreach (var z in expansionOverStar(type, $"{nameAndType.Name}.{liftedSubProperty.Name}"))
-                            yield return z;
+            subType = subType ?? masterType;
+
+            foreach (var nameAndType in getAllFieldsAndProperties(subType))
+            {
+                var spec = EntitySpec.Begin(prefix + nameAndType.Name);
+                var subProperties = getAllFieldsAndProperties(nameAndType.Type);
+                var ienumerableType = LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type);
+                if (ienumerableType != null || !subProperties.Any())
+                {
+                    if (haltRecursion.Contains(subType))
+                        throw new Exception("Circular reference detected while processing inclusion of all fields ('*')");
+                    haltRecursion.Add(subType);
+
+                    if (ienumerableType != null)
+                        spec.Add("*");
+                    yield return new Entity(subType, spec);
+
+                    haltRecursion.Remove(subType);
                 }
+
+                foreach (var liftedSubProperty in subProperties)
+                {
+                    var propName = $"{prefix}{nameAndType.Name}.{liftedSubProperty.Name}";
+                    if (getAllFieldsAndProperties(liftedSubProperty.Type).Any())
+                    {
+                        foreach (var q in expansionOverStar(masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
+                            yield return q;
+                    }
+                    else
+                        yield return new Entity(masterType, propName);
+                }
+            }
+
         }
 
         private static List<NameAndType> getAllFieldsAndProperties(Type type)
@@ -165,12 +197,10 @@ namespace factor10.Obj2Db
             if (TypeOfEntity == TypeOfEntity.PlainField)
                 return new[] {FieldInfo.GetValue(obj)};
             var result = new object[Fields.Count];
-            for (var i = 0; i < result.Length; i++)
-                if (Fields[i].TypeOfEntity == TypeOfEntity.PlainField)
-                    result[i] = Fields[i].FieldInfo.GetValue(obj);
-            for (var i = 0; i < result.Length; i++)
-                if (Fields[i].TypeOfEntity == TypeOfEntity.Formula)
-                    result[i] = Fields[i]._evaluator.Eval(result).Numeric;
+            foreach (var entity in _plainFields)
+                result[entity.ResultSetIndex] = entity.FieldInfo.GetValue(obj);
+            foreach (var entity in _formulaFields)
+                result[entity.ResultSetIndex] = entity._evaluator.Eval(result).Numeric;
             return result;
         }
 
@@ -179,6 +209,11 @@ namespace factor10.Obj2Db
             if (TypeOfEntity != TypeOfEntity.Class || _evaluator == null)
                 return true;
             return _evaluator.Eval(rowResult).Numeric > 0;
+        }
+
+        public override string ToString()
+        {
+            return Name;
         }
 
     }
