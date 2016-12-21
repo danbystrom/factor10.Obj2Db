@@ -3,7 +3,7 @@ using System.Diagnostics.Eventing.Reader;
 
 namespace factor10.Obj2Db
 {
-    public class EntityWithTable
+    public sealed class EntityWithTable
     {
         public readonly Entity Entity;
         public readonly ITable Table;

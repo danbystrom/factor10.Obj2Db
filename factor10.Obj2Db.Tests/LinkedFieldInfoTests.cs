@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace factor10.Obj2Db.Tests
 {
     [TestFixture]
-    class LinkedFieldInfoTests
+    public class LinkedFieldInfoTests
     {
         private class TestClassData
         {

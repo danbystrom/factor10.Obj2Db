@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace factor10.Obj2Db.Formula
@@ -184,6 +185,41 @@ namespace factor10.Obj2Db.Formula
         {
             return Name + "(";
         }
+    }
+
+    public class RpnItemOperandNumeric2 : RpnItemOperandNumeric
+    {
+        private readonly Func<double> _accessor;
+
+        public override double Value => _accessor();
+
+        public RpnItemOperandNumeric2(Func<double> accessor)
+        {
+            _accessor = accessor;
+        }
+
+        public override string ToString()
+        {
+            return String;
+        }
+
+    }
+
+    public class RpnItemOperandString2 : RpnItemOperandString
+    {
+        private readonly Func<string> _accessor;
+        public override string String => _accessor();
+
+        public RpnItemOperandString2(Func<string> accessor)
+        {
+            _accessor = accessor;
+        }
+
+        public override string ToString()
+        {
+            return String;
+        }
+
     }
 
 }

@@ -14,7 +14,7 @@ namespace factor10.Obj2Db
         List<ITable> GetWithAllData();
     }
 
-    public class SqlTableManager : ITableManager
+    public sealed class SqlTableManager : ITableManager
     {
         private readonly string _connectionString;
 

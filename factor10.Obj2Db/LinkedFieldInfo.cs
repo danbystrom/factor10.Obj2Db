@@ -6,7 +6,7 @@ using System.Reflection.Emit;
 
 namespace factor10.Obj2Db
 {
-    public class LinkedFieldInfo
+    public sealed class LinkedFieldInfo
     {
         private static readonly Dictionary<string, Func<IConvertible, object>> _cohersions = new Dictionary<string, Func<IConvertible, object>>
         {
@@ -60,7 +60,7 @@ namespace factor10.Obj2Db
                 _getValue = generateFastFieldFetcher(type, _fieldInfo);
         }
 
-        public static Type StripNullable(Type type = null)
+        public static Type StripNullable(Type type)
         {
             return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)
                 ? Nullable.GetUnderlyingType(type)
@@ -78,30 +78,47 @@ namespace factor10.Obj2Db
 
         private Func<object, object> generateFastPropertyFetcher(Type type, PropertyInfo propertyInfo)
         {
-            var method = new DynamicMethod("", typeof(object), new[] { typeof(object) }, type, true);
-            var il = method.GetILGenerator();
-            il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Castclass, type);
-            if (type.IsValueType)
-                il.Emit(OpCodes.Unbox, type);
-            il.Emit(OpCodes.Callvirt, propertyInfo.GetGetMethod());
-            if (propertyInfo.PropertyType.IsValueType)
-                il.Emit(OpCodes.Box, propertyInfo.PropertyType);
-            il.Emit(OpCodes.Ret);
-            return (Func<object, object>)method.CreateDelegate(typeof(Func<object, object>));
+            try
+            {
+                return generateFastFetcher(type, propertyInfo.PropertyType, il =>
+                {
+                    il.Emit(OpCodes.Callvirt, propertyInfo.GetGetMethod());
+                });
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw new Exception($"Could not generate propery fetcher for '{type.Name}'.{propertyInfo.Name}");
+            }
         }
 
         private Func<object, object> generateFastFieldFetcher(Type type, FieldInfo fieldInfo)
         {
-            var method = new DynamicMethod("", typeof(object), new[] { typeof(object) }, type, true);
+            try
+            {
+                return generateFastFetcher(type, fieldInfo.FieldType, il =>
+                {
+                    il.Emit(OpCodes.Ldfld, fieldInfo);
+                });
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw new Exception($"Could not generate field fetcher for '{type.Name}'.{fieldInfo.Name}");
+            }
+        }
+
+        private Func<object, object> generateFastFetcher(Type sourceObjectType, Type resultType, Action<ILGenerator> ilGenAction)
+        {
+            var method = new DynamicMethod("", typeof(object), new[] { typeof(object) }, sourceObjectType, true);
             var il = method.GetILGenerator();
             il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Castclass, type);
-            if (type.IsValueType)
-                il.Emit(OpCodes.Unbox, type);
-            il.Emit(OpCodes.Ldfld, fieldInfo);
-            if (fieldInfo.FieldType.IsValueType)
-                il.Emit(OpCodes.Box, fieldInfo.FieldType);
+            il.Emit(OpCodes.Castclass, sourceObjectType);
+            if (sourceObjectType.IsValueType)
+                il.Emit(OpCodes.Unbox, sourceObjectType);
+            ilGenAction(il);
+            if (resultType.IsValueType)
+                il.Emit(OpCodes.Box, resultType);
             il.Emit(OpCodes.Ret);
             return (Func<object, object>)method.CreateDelegate(typeof(Func<object, object>));
         }

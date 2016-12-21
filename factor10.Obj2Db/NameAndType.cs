@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace factor10.Obj2Db
 {
-    public class NameAndType
+    public sealed class NameAndType
     {
         public readonly string Name;
         public readonly Type Type;

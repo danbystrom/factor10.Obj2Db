@@ -13,6 +13,21 @@ namespace factor10.Obj2Db
     {
         private const string ConnectionStringBase = @"Data Source=localhost\SQLEXPRESS;Initial Catalog={0};Integrated Security=SSPI;";
 
+        public static Dictionary<string, string> ColumnTypes = new Dictionary<string, string>
+        {
+            {"System.Int32", "integer"},
+            {"System.Int64", "bigint"},
+            {"System.Int16", "smallint"},
+            {"System.Decimal", "float"},
+            {"System.DateTime", "datetime"},
+            {"System.Double", "float"},
+            {"System.Single", "float"},
+            {"System.String", "nvarchar(max)"},
+            {"System.Boolean", "bit"},
+            {"System.Guid", "uniqueidentifier"},
+            {"System.byte array", "varbinary(max)"}
+        };
+
         public static string ConnectionString(string dbName)
         {
             return string.Format(ConnectionStringBase, dbName);
@@ -72,22 +87,9 @@ namespace factor10.Obj2Db
             return (T) SimpleQuery(conn, query)[0];
         }
 
-        public static string Field2Sql(NameAndType field)
+        public static string Field2Sql(NameAndType field, bool returnNullWhenInvalidType = false)
         {
             var type = field.Type;
-            var dic = new Dictionary<string, string>
-            {
-                {"System.Int32", "integer"},
-                {"System.Int64", "bigint"},
-                {"System.Int16", "smallint"},
-                {"System.Decimal", "float"},
-                {"System.DateTime", "datetime"},
-                {"System.Double", "float"},
-                {"System.Single", "float"},
-                {"System.String", "nvarchar(max)"},
-                {"System.Boolean", "bit"},
-                {"System.Guid", "uniqueidentifier"}
-            };
             var notnull = type != typeof(string);
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
@@ -97,14 +99,17 @@ namespace factor10.Obj2Db
             if (type.IsEnum)
                 type = typeof(int);
             string def;
-            if (!dic.TryGetValue(type.ToString(), out def))
-                throw new Exception($"Unhandled column type '{type}'");
+            if (!ColumnTypes.TryGetValue(type.FullName, out def))
+                if (returnNullWhenInvalidType)
+                    return null;
+                else
+                    throw new Exception($"Unhandled column type '{type}'");
             return $"[{field.Name}] {def}" + (notnull ? " not null" : "");
         }
 
         public static string GenerateCreateTable(ITable table, string prefixedColumns)
         {
-            return $"CREATE TABLE [{table.Name}] ({prefixedColumns}{string.Join(",", table.Fields.Select(Field2Sql))})";
+            return $"CREATE TABLE [{table.Name}] ({prefixedColumns}{string.Join(",", table.Fields.Select(_ => Field2Sql(_)))})";
         }
 
     }

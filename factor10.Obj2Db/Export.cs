@@ -6,7 +6,7 @@ using System.Threading;
 namespace factor10.Obj2Db
 {
 
-    public class Export<T>
+    public sealed class Export<T>
     {
         public readonly Entity Entity;
         public readonly ITableManager TableManager;
@@ -40,14 +40,17 @@ namespace factor10.Obj2Db
             {
                 var subEntity = aggregator.EntityWithTable;
                 var enumerable = subEntity.Entity.GetIEnumerable(obj);
-                if (enumerable != null)
-                    foreach (var itm in enumerable)
-                    {
-                        var subResult = run(subEntity, itm, pk);
+                if (enumerable == null)
+                    continue;
+                var hasAggregation = aggregator.AggregationMapper.Count != 0;
+                foreach (var itm in enumerable)
+                {
+                    var subResult = run(subEntity, itm, pk);
+                    if (hasAggregation)
                         aggregator.UpdateWith(subResult);
-                    }
+                }
             }
-            if(entity.Entity.PassesFilter(rowResult))
+            if (entity.Entity.PassesFilter(rowResult))
                 entity.Table?.AddRow(pk, parentRowId, rowResult);
             return rowResult;
         }
@@ -64,22 +67,24 @@ namespace factor10.Obj2Db
 
     }
 
-    public class Aggregator
+    public sealed class Aggregator
     {
         public object[] Result;
         public EntityWithTable EntityWithTable;
-
+        public List<Tuple<int, int>> AggregationMapper;
+         
         public Aggregator(EntityWithTable entityWithTable, object[] result)
         {
             EntityWithTable = entityWithTable;
             Result = result;
-            foreach (var p in EntityWithTable.Entity.TemporaryAggregationMapper)
+            AggregationMapper = EntityWithTable.Entity.AggregationMapper;
+            foreach (var p in AggregationMapper)
                 Result[p.Item2] = 0.0;
         }
 
         public void UpdateWith(object[] subResult)
         {
-            foreach (var p in EntityWithTable.Entity.TemporaryAggregationMapper)
+            foreach (var p in AggregationMapper)
             {
                 var r = (Result[p.Item2] as IConvertible)?.ToDouble(null) ?? 0;
                 Result[p.Item2] = r + (subResult[p.Item1] as IConvertible)?.ToDouble(null) ?? 0;
@@ -88,7 +93,7 @@ namespace factor10.Obj2Db
 
         public void CoherseAggregatedValues()
         {
-            foreach (var p in EntityWithTable.Entity.TemporaryAggregationMapper)
+            foreach (var p in AggregationMapper)
                 Result[p.Item2] = EntityWithTable.Entity.Fields[p.Item1].FieldInfo.CoherseType(Result[p.Item2]);
         }
 

@@ -15,7 +15,7 @@ namespace factor10.Obj2Db
         Formula
     }
 
-    public class Entity
+    public sealed class Entity
     {
         public readonly EntitySpec Spec;
 
@@ -37,15 +37,17 @@ namespace factor10.Obj2Db
 
         public Type FieldType { get; private set; }
 
-        public readonly List<Tuple<int, int>> TemporaryAggregationMapper = new List<Tuple<int, int>>();
+        public readonly List<Tuple<int, int>> AggregationMapper = new List<Tuple<int, int>>();
 
         private EvaluateRpn _evaluator;
 
         private Entity(string name, LinkedFieldInfo fieldInfo)
         {
-            Spec = EntitySpec.Begin(name);
-            ExternalName = name?.Replace(".", "");
             FieldInfo = fieldInfo;
+            FieldType = fieldInfo.FieldType;
+            TypeName = FieldType.Name;
+            Spec = EntitySpec.Begin(name ?? TypeName);
+            ExternalName = Name.Replace(".", "");
             TypeOfEntity = TypeOfEntity.PlainField;
         }
 
@@ -54,6 +56,10 @@ namespace factor10.Obj2Db
             Spec = entitySpec;
             ExternalName = entitySpec.externalname ?? Name?.Replace(".", "");
             NoSave = entitySpec.nosave;
+
+            if (ExternalName == "mostRecentBfDmetadataKeys")
+            {
+            }
 
             if (!string.IsNullOrEmpty(Spec.aggregation))
                 TypeOfEntity = TypeOfEntity.Aggregation;
@@ -101,7 +107,7 @@ namespace factor10.Obj2Db
                 var subFieldIndex = subEntity.Fields.FindIndex(_ => (_.Name ?? "") == subFieldName);
                 if (subFieldIndex < 0)
                     throw new Exception();
-                subEntity.TemporaryAggregationMapper.Add(Tuple.Create(subFieldIndex, fi));
+                subEntity.AggregationMapper.Add(Tuple.Create(subFieldIndex, fi));
                 field.FieldType = subEntity.Fields[subFieldIndex].FieldType;
             }
 
@@ -112,6 +118,11 @@ namespace factor10.Obj2Db
 
             if (TypeOfEntity == TypeOfEntity.Class && !string.IsNullOrEmpty(Spec.where))
                 _evaluator = new EvaluateRpn(new Rpn(Spec.where), fieldInfosForEvaluator);
+
+            // this was to be able to serialze a contract, since "*" was digging up so much garbage...
+            Fields.RemoveAll(_ =>
+                _.TypeOfEntity == TypeOfEntity.PlainField && SqlStuff.Field2Sql(new NameAndType(null, _.FieldType), true) == null);
+            Lists.RemoveAll(_ => !_.Fields.Any() && !_.Lists.Any());
 
             for (var i = 0; i < Fields.Count; i++)
                 Fields[i].ResultSetIndex = i;
@@ -130,12 +141,13 @@ namespace factor10.Obj2Db
         }
 
         private static IEnumerable<Entity> expansionOverStar(
-            Type masterType, 
-            EntitySpec subEntitySpec, 
-            HashSet<Type> haltRecursion, 
+            Type masterType,
+            EntitySpec subEntitySpec,
+            HashSet<Type> haltRecursion,
             string prefix = "",
             Type subType = null)
         {
+
             if (subEntitySpec.name != "*")
             {
                 yield return new Entity(masterType, subEntitySpec);
@@ -144,46 +156,63 @@ namespace factor10.Obj2Db
 
             subType = subType ?? masterType;
 
+            if (haltRecursion.Contains(subType))
+                throw new Exception("Circular reference detected while processing inclusion of all fields ('*')");
+            haltRecursion.Add(subType);
+
+            Console.WriteLine(masterType.Name);
+            if (subType.Name.EndsWith("ContractSection"))
+            {
+            }
+
             foreach (var nameAndType in getAllFieldsAndProperties(subType))
             {
+                if (nameAndType.Type == typeof(object))
+                    continue;
                 var spec = EntitySpec.Begin(prefix + nameAndType.Name);
                 var subProperties = getAllFieldsAndProperties(nameAndType.Type);
                 var ienumerableType = LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type);
                 if (ienumerableType != null || !subProperties.Any())
                 {
-                    if (haltRecursion.Contains(subType))
-                        throw new Exception("Circular reference detected while processing inclusion of all fields ('*')");
-                    haltRecursion.Add(subType);
-
                     if (ienumerableType != null)
                         spec.Add("*");
-                    yield return new Entity(subType, spec);
-
-                    haltRecursion.Remove(subType);
+                    yield return new Entity(masterType, spec);
                 }
 
                 foreach (var liftedSubProperty in subProperties)
                 {
+                    if (liftedSubProperty.Type == typeof(object))
+                        continue;
                     var propName = $"{prefix}{nameAndType.Name}.{liftedSubProperty.Name}";
                     if (getAllFieldsAndProperties(liftedSubProperty.Type).Any())
-                    {
                         foreach (var q in expansionOverStar(masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
                             yield return q;
-                    }
                     else
                         yield return new Entity(masterType, propName);
                 }
             }
 
+            haltRecursion.Remove(subType);
         }
 
         private static List<NameAndType> getAllFieldsAndProperties(Type type)
         {
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.GetGetMethod().IsSpecialName);
-            var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.IsSpecialName);
             var list = new List<NameAndType>();
+            if (type == typeof(string) || type.IsArray || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)))
+                return list;
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(_ => _.GetIndexParameters().Length == 0);
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.IsSpecialName);
             list.AddRange(properties.Select(_ => new NameAndType(_)));
             list.AddRange(fields.Select(_ => new NameAndType(_)));
+            for (; type != null && type != typeof(object); type = type.BaseType)
+                if (type.IsGenericType)
+                {
+                    var genTypDef = type.GetGenericTypeDefinition();
+                    if (genTypDef == typeof(List<>))
+                        list.RemoveAll(_ => new[] { "Capacity", "Count" }.Contains(_.Name));
+                    if (genTypDef == typeof(Dictionary<,>) || genTypDef == typeof(IDictionary<,>) )
+                        list.RemoveAll(_ => new[] { "Comparer", "Count", "Keys", "Values" }.Contains(_.Name));
+                }
             return list;
         }
 

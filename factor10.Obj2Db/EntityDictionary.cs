@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace factor10.Obj2Db
 {
-    public class ConcurrentEntityTableDictionary
+    public sealed class ConcurrentEntityTableDictionary
     {
         private readonly ConcurrentDictionary<int, EntityWithTable> _dic = new ConcurrentDictionary<int, EntityWithTable>();
         private readonly Entity _template;

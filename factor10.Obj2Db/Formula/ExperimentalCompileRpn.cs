@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection.Emit;
 
 namespace factor10.Obj2Db.Formula
 {
-    public class EvaluateRpn
+    public class CompileRpn
     {
         private readonly List<RpnItem> _original;  
         private List<RpnItem> _work;
@@ -13,9 +14,11 @@ namespace factor10.Obj2Db.Formula
 
         private readonly Action[] _operatorEvaluator;
 
-        public EvaluateRpn(
+        public Func<object[], object> Evaluate;
+
+        public CompileRpn(
             Rpn rpn,
-            List<Tuple<string,Type>> entityFields = null)
+            List<NameAndType> entityFields = null)
         {
             _original = rpn.Result.ToList();
 
@@ -60,62 +63,71 @@ namespace factor10.Obj2Db.Formula
             foreach (var p in operatorEvaluator)
                 _operatorEvaluator[(int) p.Key] = p.Value;
 
-            if (entityFields != null)
-                for (var i = 0; i < _original.Count; i++)
+           var method = new DynamicMethod("", typeof (object), new[] {typeof (object[])}, GetType().Module);
+            var il = method.GetILGenerator();
+
+            foreach (var item in _original)
+            {
+                var itemNumeric = item as RpnItemOperandNumeric;
+                if (itemNumeric != null)
                 {
-                    var itm = _original[i] as RpnItemOperandVariable;
-                    if (itm == null)
-                        continue;
-                    var x = entityFields.FindIndex(_ => _.Item1 == itm.Name);
-                    if (x < 0)
-                        throw new ArgumentException($"Unknown varable '{itm.Name}'");
-                    if(entityFields[x].Item2==typeof(string))
-                        _original[i] = new RpnItemOperandString2(() => _variables[x]?.ToString());
-                    else
-                        _original[i] = new RpnItemOperandNumeric2(() => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0);
+                    il.Emit(OpCodes.Ldc_R8, itemNumeric.Numeric);
+                    continue;
                 }
-
-        }
-
-        private object[] _variables;
-
-        public RpnItemOperand Eval(object[] variables = null)
-        {
-            _variables = variables;
-            _work = _original.ToList();
-
-            var functionEvaluator = new Dictionary<string, Action>
-            {
-                {"min", funcMin},
-                {"max", funcMax},
-                {"first", funcFirst},
-                {"tail", funcTail},
-            };
-
-            while (_work.Count > 1)
-            {
-                _i = _work.FindIndex(_ => !(_ is RpnItemOperand));
-                var item = _work[_i];
 
                 var itemOperator = item as RpnItemOperator;
                 if (itemOperator != null)
                 {
-                    _operatorEvaluator[(int)itemOperator.Operator]();
+                    switch (itemOperator.Operator)
+                    {
+                        case Operator.Addition:
+                            il.Emit(OpCodes.Add);
+                            break;
+                        case Operator.Multiplication:
+                            il.Emit(OpCodes.Mul);
+                            break;
+                        default:
+                            throw new Exception();
+                    }
                     continue;
                 }
 
-                var itemFunction = item as RpnItemFunction;
-                if (itemFunction != null)
+                var itemVariable = item as RpnItemOperandVariable;
+                if (itemVariable != null)
                 {
-                    functionEvaluator[itemFunction.Name]();
-                    _work.RemoveRange(_i - itemFunction.ArgumentCount, itemFunction.ArgumentCount);
-                    continue;
+                    var x = entityFields.FindIndex(_ => _.Name == itemVariable.Name);
+                    if (x < 0)
+                        throw new ArgumentException($"Unknown varable '{itemVariable.Name}'");
+                    if (entityFields[x].Type != typeof(double))
+                        throw new NotImplementedException();
+                    else
+                    {
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Ldc_I4, x);
+                        il.Emit(OpCodes.Ldelem_Ref);
+                        il.Emit(OpCodes.Unbox_Any, typeof(double));
+                    }
+                    //_original[i] = new RpnItemOperandNumeric2(() => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0);
+                        continue;
                 }
+
+                //var itemFunction = item as RpnItemFunction;
+                //if (itemFunction != null)
+                //{
+                //    functionEvaluator[itemFunction.Name]();
+                //    _work.RemoveRange(_i - itemFunction.ArgumentCount, itemFunction.ArgumentCount);
+                //    continue;
+                //}
 
                 throw new Exception("What the hell happened here?");
             }
 
-            return (RpnItemOperand) _work.Single();
+            //ilPushVariable(0);
+            //ilPushVariable(1);
+            //il.Emit(OpCodes.Add);
+            il.Emit(OpCodes.Box, typeof(double));
+            il.Emit(OpCodes.Ret);
+            Evaluate = (Func<object[], object>)method.CreateDelegate(typeof(Func<object[], object>));
         }
 
         private void funcTail()

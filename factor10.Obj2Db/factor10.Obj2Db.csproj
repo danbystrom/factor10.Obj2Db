@@ -56,6 +56,7 @@
   <ItemGroup>
     <Compile Include="EntitySpec.cs" />
     <Compile Include="EntityWithTable.cs" />
+    <Compile Include="Formula\ExperimentalCompileRpn.cs" />
     <Compile Include="Formula\Rpn.cs" />
     <Compile Include="Formula\RpnItems.cs" />
     <Compile Include="Formula\EvaluateRpn.cs" />

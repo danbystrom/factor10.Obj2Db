@@ -14,7 +14,7 @@ namespace factor10.Obj2Db
         bool HasForeignKey { get; }
     }
 
-    public class Table : ITable
+    public sealed class Table : ITable
     {
         public ITableManager TableManager;
 
@@ -30,9 +30,11 @@ namespace factor10.Obj2Db
         {
             TableManager = tableManager;
             _flushThreshold = flushThreshold;
-            Name = entity.Name ?? entity.TypeName;
+            Name = entity.ExternalName ?? entity.TypeName;
             HasForeignKey = hasForeignKey;
             Fields = entity.Fields.Select(_ => new NameAndType(_.ExternalName, _.FieldType)).ToList();
+            if(Fields.Any(_ => string.IsNullOrEmpty(_.Name)))
+                throw new ArgumentException($"Table {Name} contains empty column name");
         }
 
         public DataTable AsDataTable()

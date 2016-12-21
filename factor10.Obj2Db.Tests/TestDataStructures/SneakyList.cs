@@ -12,6 +12,8 @@ namespace factor10.Obj2Db.Tests.TestDataStructures
     {
         public SomeStruct TheStruct;
         public SneakyList TheList;
+        public Dictionary<int, int> DictionariesAreSneaky;
+        public int[] ArraysAreSneaky;
     }
 
 }
