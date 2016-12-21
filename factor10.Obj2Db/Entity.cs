@@ -147,7 +147,6 @@ namespace factor10.Obj2Db
             string prefix = "",
             Type subType = null)
         {
-
             if (subEntitySpec.name != "*")
             {
                 yield return new Entity(masterType, subEntitySpec);
@@ -171,13 +170,13 @@ namespace factor10.Obj2Db
                     continue;
                 var spec = EntitySpec.Begin(prefix + nameAndType.Name);
                 var subProperties = getAllFieldsAndProperties(nameAndType.Type);
-                var ienumerableType = LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type);
-                if (ienumerableType != null || !subProperties.Any())
+                if (LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type) != null)
                 {
-                    if (ienumerableType != null)
-                        spec.Add("*");
+                    spec.Add("*");
                     yield return new Entity(masterType, spec);
                 }
+                else if (!subProperties.Any())
+                    yield return new Entity(masterType, spec);
 
                 foreach (var liftedSubProperty in subProperties)
                 {
@@ -208,10 +207,10 @@ namespace factor10.Obj2Db
                 if (type.IsGenericType)
                 {
                     var genTypDef = type.GetGenericTypeDefinition();
-                    if (genTypDef == typeof(List<>))
-                        list.RemoveAll(_ => new[] { "Capacity", "Count" }.Contains(_.Name));
-                    if (genTypDef == typeof(Dictionary<,>) || genTypDef == typeof(IDictionary<,>) )
-                        list.RemoveAll(_ => new[] { "Comparer", "Count", "Keys", "Values" }.Contains(_.Name));
+                    if (genTypDef == typeof(List<>) || genTypDef == typeof(IList<>))
+                        list.RemoveAll(_ => new[] {"Capacity", "Count"}.Contains(_.Name));
+                    if (genTypDef == typeof(Dictionary<,>) || genTypDef == typeof(IDictionary<,>))
+                        list.RemoveAll(_ => new[] {"Comparer", "Count", "Keys", "Values"}.Contains(_.Name));
                 }
             return list;
         }

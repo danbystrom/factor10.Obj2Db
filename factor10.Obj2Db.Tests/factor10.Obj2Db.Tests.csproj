@@ -49,6 +49,7 @@
     <Compile Include="AggregationTests.cs" />
     <Compile Include="CompilerTests.cs" />
     <Compile Include="EnumTests.cs" />
+    <Compile Include="Formula\CompiledEvaluatorTests.cs" />
     <Compile Include="StarTests.cs" />
     <Compile Include="TestDataStructures\DeepDeclaration.cs" />
     <Compile Include="TestDataStructures\SneakyList.cs" />

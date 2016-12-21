@@ -25,7 +25,7 @@ namespace factor10.Obj2Db
             {"System.String", "nvarchar(max)"},
             {"System.Boolean", "bit"},
             {"System.Guid", "uniqueidentifier"},
-            {"System.byte array", "varbinary(max)"}
+            {"System.Byte[]", "varbinary(max)"}
         };
 
         public static string ConnectionString(string dbName)
@@ -90,7 +90,7 @@ namespace factor10.Obj2Db
         public static string Field2Sql(NameAndType field, bool returnNullWhenInvalidType = false)
         {
             var type = field.Type;
-            var notnull = type != typeof(string);
+            var notnull = type != typeof(string) && type != typeof(byte[]);
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 type = type.GenericTypeArguments[0];

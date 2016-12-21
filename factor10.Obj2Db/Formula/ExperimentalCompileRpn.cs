@@ -12,7 +12,7 @@ namespace factor10.Obj2Db.Formula
         private List<RpnItem> _work;
         private int _i;
 
-        private readonly Action[] _operatorEvaluator;
+        private readonly Action<ILGenerator>[] _operatorEvaluator;
 
         public Func<object[], object> Evaluate;
 
@@ -22,44 +22,44 @@ namespace factor10.Obj2Db.Formula
         {
             _original = rpn.Result.ToList();
 
-            var operatorEvaluator = new Dictionary<Operator, Action>
+            var operatorEvaluator = new Dictionary<Operator, Action<ILGenerator>>
             {
-                {Operator.Negation, () => calcUnary(x => -x)},
-                {Operator.Not, () => calcUnary(x => x != 0 ? 1 : 0)},
-                {Operator.Division, () => calcBinary((x, y) => x/y)},
-                {Operator.Minus, () => calcBinary((x, y) => x - y)},
-                {Operator.Multiplication, () => calcBinary((x, y) => x*y)},
-                {Operator.Addition, () => calcBinary((x, y) => x + y, (x, y) => new RpnItemOperandString(x + y))},
-                {Operator.And, () => calcBinary((x, y) => (x != 0) && (y != 0) ? 1 : 0)},
-                {Operator.Or, () => calcBinary((x, y) => (x != 0) || (y != 0) ? 1 : 0)},
-                {Operator.Question, calcQuestion},
-                {
-                    Operator.Equal, () => calcBinary((x, y) => x == y ? 1 : 0,
-                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) == 0 ? 1 : 0))
+                {Operator.Negation, _ => _.Emit(OpCodes.Neg)},
+                {Operator.Not, _ => _.Emit(OpCodes.Not)},
+                {Operator.Division, _ => _.Emit(OpCodes.Div)},
+                {Operator.Minus, _ => _.Emit(OpCodes.Sub)},
+                {Operator.Multiplication, _ => _.Emit(OpCodes.Mul)},
+                {Operator.Addition, _ => _.Emit(OpCodes.Add)}, // how to handle strings?
+                {Operator.And, _ => _.Emit(OpCodes.And)},
+                {Operator.Or, _ => _.Emit(OpCodes.Or)},
+                {Operator.Equal, _ => _.Emit(OpCodes.Ceq)},
+                {Operator.Lt, _ => _.Emit(OpCodes.Clt)},
+                {Operator.Gt, _ => _.Emit(OpCodes.Cgt)},
+                {Operator.NotEqual, _ =>
+                    {
+                        _.Emit(OpCodes.Ceq);
+                        _.Emit(OpCodes.Ldc_I4_0);
+                        _.Emit(OpCodes.Ceq);
+                    }
                 },
-                {
-                    Operator.Lt, () => calcBinary((x, y) => x < y ? 1 : 0,
-                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) < 0 ? 1 : 0))
+                {Operator.EqGt, _ =>
+                    {
+                        _.Emit(OpCodes.Clt);
+                        _.Emit(OpCodes.Ldc_I4_0);
+                        _.Emit(OpCodes.Ceq);
+                    }
                 },
-                {
-                    Operator.EqLt, () => calcBinary((x, y) => x <= y ? 1 : 0,
-                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) <= 0 ? 1 : 0))
+                {Operator.EqLt, _ =>
+                    {
+                        _.Emit(OpCodes.Cgt);
+                        _.Emit(OpCodes.Ldc_I4_0);
+                        _.Emit(OpCodes.Ceq);
+                    }
                 },
-                {
-                    Operator.Gt, () => calcBinary((x, y) => x > y ? 1 : 0,
-                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) > 0 ? 1 : 0))
-                },
-                {
-                    Operator.EqGt, () => calcBinary((x, y) => x >= y ? 1 : 0,
-                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) >= 0 ? 1 : 0))
-                },
-                {
-                    Operator.NotEqual, () => calcBinary((x, y) => x != y ? 1 : 0,
-                        (x, y) => new RpnItemOperandNumeric(string.CompareOrdinal(x, y) != 0 ? 1 : 0))
-                },
+                //{Operator.Question, calcQuestion},
             };
 
-            _operatorEvaluator = new Action[operatorEvaluator.Keys.Max(_ => (int) _) + 1];
+            _operatorEvaluator = new Action<ILGenerator>[operatorEvaluator.Keys.Max(_ => (int) _) + 1];
             foreach (var p in operatorEvaluator)
                 _operatorEvaluator[(int) p.Key] = p.Value;
 
@@ -77,18 +77,8 @@ namespace factor10.Obj2Db.Formula
 
                 var itemOperator = item as RpnItemOperator;
                 if (itemOperator != null)
-                {
-                    switch (itemOperator.Operator)
-                    {
-                        case Operator.Addition:
-                            il.Emit(OpCodes.Add);
-                            break;
-                        case Operator.Multiplication:
-                            il.Emit(OpCodes.Mul);
-                            break;
-                        default:
-                            throw new Exception();
-                    }
+                { 
+                    operatorEvaluator[itemOperator.Operator](il);
                     continue;
                 }
 
