@@ -4,70 +4,88 @@ using System.Linq;
 
 namespace factor10.Obj2Db
 {
-    public class EntitySpec
+    public class entitySpec
     {
         public string name;
         public string externalname;
         public bool nosave;
-        public List<EntitySpec> Fields = new List<EntitySpec>();
+        public List<entitySpec> fields;
 
         public string aggregation;
         public string formula;
         public string where;
 
-        private EntitySpec()
+        private entitySpec()
         {
         }
 
-        public bool IsField => !Fields.Any();
-
-        public static EntitySpec Begin(string name = null, string externalName = null)
+        public static entitySpec Begin(string name = null, string externalName = null)
         {
-            return new EntitySpec { name = name, externalname = externalName };
+            return new entitySpec {name = name, externalname = externalName};
         }
 
-        public EntitySpec NotSaved()
+        public entitySpec NotSaved()
         {
-            if (Fields.Any())
-                Fields.Last().nosave = true;
+            if (fields != null && fields.Any())
+                fields.Last().nosave = true;
             else
                 nosave = true;
             return this;
         }
 
-        public EntitySpec Aggregates(string field)
+        public entitySpec Aggregates(string field)
         {
-            if (!string.IsNullOrEmpty(field) && !Fields.Any())
+            if (string.IsNullOrEmpty(field))
+                throw new ArgumentException("Empty aggregate field name");
+            if (fields == null || !fields.Any())
                 throw new Exception("Can only be called on field");
-            Fields.Last().aggregation = field;
+            fields.Last().aggregation = field;
             return this;
         }
 
-        public EntitySpec Formula(string expression)
+        public entitySpec Formula(string expression)
         {
-            if (!string.IsNullOrEmpty(expression) && !Fields.Any())
+            if (string.IsNullOrEmpty(expression))
+                throw new ArgumentException("Empty formula expression");
+            if (fields == null || !fields.Any())
                 throw new Exception("Can only be called on field");
-            Fields.Last().formula = expression;
+            fields.Last().formula = expression;
             return this;
         }
 
-        public EntitySpec Where(string whereClause)
+        public entitySpec Where(string whereClause)
         {
-            if (!string.IsNullOrEmpty(whereClause) && Fields.Any())
+            if (fields!=null && fields.Any())
                 throw new Exception("Where can only be called on list");
             where = whereClause;
             return this;
         }
 
-        public EntitySpec Add(EntitySpec entitySpec)
+        public entitySpec Add(entitySpec entitySpec)
         {
-            Fields.Add(entitySpec);
+            if (fields == null)
+                fields = new List<entitySpec>();
+            fields.Add(entitySpec);
             return this;
         }
 
-        public static implicit operator EntitySpec(string name)
+        public static implicit operator entitySpec(string name)
         {
-            return new EntitySpec { name = name };
+            return new entitySpec {name = name};
+        }
+
+        public entitySpec(Entity entity)
+        {
+            name = entity.Spec.name;
+            externalname = entity.Spec.externalname;
+            nosave = entity.Spec.nosave;
+            aggregation = entity.Spec.aggregation;
+            formula = entity.Spec.formula;
+            where = entity.Spec.where;
+            foreach (var e in entity.Fields)
+                Add(new entitySpec(e));
+            foreach (var e in entity.Lists)
+                Add(new entitySpec(e));
         }
 
     }

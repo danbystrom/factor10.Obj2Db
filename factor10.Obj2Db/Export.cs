@@ -11,7 +11,7 @@ namespace factor10.Obj2Db
         public readonly Entity Entity;
         public readonly ITableManager TableManager;
 
-        public Export(EntitySpec entitySpec, ITableManager tableManager = null)
+        public Export(entitySpec entitySpec, ITableManager tableManager = null)
         {
             Entity = new Entity(typeof (T), entitySpec);
             TableManager = tableManager ?? new InMemoryTableManager();

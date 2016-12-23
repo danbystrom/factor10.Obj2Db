@@ -24,6 +24,7 @@ namespace factor10.Obj2Db.Formula
         And,
         Negation,
         Not,
+        NullCoalescing,
     }
 
     public abstract class RpnItem
@@ -131,7 +132,8 @@ namespace factor10.Obj2Db.Formula
             "|",
             "&",
             "-",
-            "!"
+            "!",
+            "??",
         };
 
         public readonly Operator Operator;

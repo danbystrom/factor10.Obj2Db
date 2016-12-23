@@ -25,11 +25,11 @@ namespace ConsoleApplication1
                     FirstName = firstNames[i%firstNames.Length],
                     LastName = lastNames[i%lastNames.Length]
                 });
-            var spec = EntitySpec.Begin()
+            var spec = entitySpec.Begin()
                 .Add("Name")
-                .Add(EntitySpec.Begin("Classes")
+                .Add(entitySpec.Begin("Classes")
                     .Add("Name")
-                    .Add(EntitySpec.Begin("Students")
+                    .Add(entitySpec.Begin("Students")
                         .Add("FirstName")
                         .Add("LastName")));
 

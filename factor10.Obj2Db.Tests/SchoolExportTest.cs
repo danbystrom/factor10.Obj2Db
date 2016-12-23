@@ -12,7 +12,7 @@ namespace factor10.Obj2Db.Tests
     public class SchoolExportTest
     {
         private School _school;
-        private EntitySpec _spec;
+        private entitySpec _spec;
 
         [OneTimeSetUp]
         public void SetUp()
@@ -32,11 +32,11 @@ namespace factor10.Obj2Db.Tests
                     LastName = lastNames[i%lastNames.Length]
                 });
 
-            _spec = EntitySpec.Begin()
+            _spec = entitySpec.Begin()
                 .Add("Name")
-                .Add(EntitySpec.Begin("Classes")
+                .Add(entitySpec.Begin("Classes")
                     .Add("Name")
-                    .Add(EntitySpec.Begin("Students")
+                    .Add(entitySpec.Begin("Students")
                         .Add("FirstName")
                         .Add("LastName")));
         }

@@ -8,7 +8,7 @@ namespace factor10.Obj2Db.Tests
     [TestFixture]
     public class EnumTests
     {
-        private readonly EntitySpec _spec = EntitySpec.Begin()
+        private readonly entitySpec _spec = entitySpec.Begin()
                 .Add("Case1")
                 .Add("Case2")
                 .Add("Case3")

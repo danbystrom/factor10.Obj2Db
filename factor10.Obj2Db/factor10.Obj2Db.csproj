@@ -54,7 +54,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="EntitySpec.cs" />
+    <Compile Include="entitySpec.cs" />
     <Compile Include="EntityWithTable.cs" />
     <Compile Include="Formula\ExperimentalCompileRpn.cs" />
     <Compile Include="Formula\Rpn.cs" />

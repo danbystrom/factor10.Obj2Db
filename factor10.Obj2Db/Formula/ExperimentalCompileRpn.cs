@@ -9,8 +9,6 @@ namespace factor10.Obj2Db.Formula
     public class CompileRpn
     {
         private readonly List<RpnItem> _original;  
-        private List<RpnItem> _work;
-        private int _i;
 
         private readonly Action<ILGenerator>[] _operatorEvaluator;
 
@@ -35,21 +33,24 @@ namespace factor10.Obj2Db.Formula
                 {Operator.Equal, _ => _.Emit(OpCodes.Ceq)},
                 {Operator.Lt, _ => _.Emit(OpCodes.Clt)},
                 {Operator.Gt, _ => _.Emit(OpCodes.Cgt)},
-                {Operator.NotEqual, _ =>
+                {
+                    Operator.NotEqual, _ =>
                     {
                         _.Emit(OpCodes.Ceq);
                         _.Emit(OpCodes.Ldc_I4_0);
                         _.Emit(OpCodes.Ceq);
                     }
                 },
-                {Operator.EqGt, _ =>
+                {
+                    Operator.EqGt, _ =>
                     {
                         _.Emit(OpCodes.Clt);
                         _.Emit(OpCodes.Ldc_I4_0);
                         _.Emit(OpCodes.Ceq);
                     }
                 },
-                {Operator.EqLt, _ =>
+                {
+                    Operator.EqLt, _ =>
                     {
                         _.Emit(OpCodes.Cgt);
                         _.Emit(OpCodes.Ldc_I4_0);
@@ -63,8 +64,10 @@ namespace factor10.Obj2Db.Formula
             foreach (var p in operatorEvaluator)
                 _operatorEvaluator[(int) p.Key] = p.Value;
 
-           var method = new DynamicMethod("", typeof (object), new[] {typeof (object[])}, GetType().Module);
+            var method = new DynamicMethod("", typeof(object), new[] {typeof(object[])}, GetType().Module);
             var il = method.GetILGenerator();
+
+            var typeStack = new Stack<Type>();
 
             foreach (var item in _original)
             {
@@ -72,13 +75,24 @@ namespace factor10.Obj2Db.Formula
                 if (itemNumeric != null)
                 {
                     il.Emit(OpCodes.Ldc_R8, itemNumeric.Numeric);
+                    typeStack.Push(typeof(double));
                     continue;
                 }
 
                 var itemOperator = item as RpnItemOperator;
                 if (itemOperator != null)
-                { 
+                {
+                    if (itemOperator.IsUnary())
+                    {
+                        typeStack.Pop();
+                    }
+                    else
+                    {
+                        typeStack.Pop();
+                        typeStack.Pop();
+                    }
                     operatorEvaluator[itemOperator.Operator](il);
+                    typeStack.Push(typeof(double));
                     continue;
                 }
 
@@ -98,96 +112,20 @@ namespace factor10.Obj2Db.Formula
                         il.Emit(OpCodes.Unbox_Any, typeof(double));
                     }
                     //_original[i] = new RpnItemOperandNumeric2(() => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0);
-                        continue;
+                    typeStack.Push(typeof(double));
+                    continue;
                 }
-
-                //var itemFunction = item as RpnItemFunction;
-                //if (itemFunction != null)
-                //{
-                //    functionEvaluator[itemFunction.Name]();
-                //    _work.RemoveRange(_i - itemFunction.ArgumentCount, itemFunction.ArgumentCount);
-                //    continue;
-                //}
 
                 throw new Exception("What the hell happened here?");
             }
 
-            //ilPushVariable(0);
-            //ilPushVariable(1);
-            //il.Emit(OpCodes.Add);
+            if(typeStack.Count!=1)
+                throw new Exception("What the hell happened here?");
+
             il.Emit(OpCodes.Box, typeof(double));
             il.Emit(OpCodes.Ret);
-            Evaluate = (Func<object[], object>)method.CreateDelegate(typeof(Func<object[], object>));
-        }
 
-        private void funcTail()
-        {
-            var main = peekStr(2);
-            var pos = main.IndexOf(peekStr(1), StringComparison.Ordinal);
-            _work[_i] = new RpnItemOperandString(pos >= 0 ? main.Substring(pos + 1) : "");
-        }
-
-        private void funcFirst()
-        {
-            var argCount = ((RpnItemFunction) _work[_i]).ArgumentCount;
-            string result = null;
-            var i = argCount + 1;
-            while (i > 1 && result == null)
-                result = peekStr(--i);
-            _work[_i] = _work[_i - i];
-        }
-
-        private void funcMin()
-        {
-            var argCount = ((RpnItemFunction)_work[_i]).ArgumentCount;
-            var result = double.MaxValue;
-            var i = argCount + 1;
-            while (i > 1)
-                result = Math.Min(result, peekNum(--i));
-            _work[_i] = new RpnItemOperandNumeric(result);
-        }
-
-        private void funcMax()
-        {
-            var argCount = ((RpnItemFunction)_work[_i]).ArgumentCount;
-            var result = double.MinValue;
-            var i = argCount + 1;
-            while (i > 1)
-                result = Math.Max(result, peekNum(--i));
-            _work[_i] = new RpnItemOperandNumeric(result);
-        }
-
-        private void calcBinary(Func<double, double, double> funcNum, Func<string, string, RpnItemOperand> funcStr = null)
-        {
-            if (funcStr != null && _work[_i - 2] is RpnItemOperandString && _work[_i - 1] is RpnItemOperandString)
-                _work[_i] = funcStr(peekStr(2), peekStr(1));
-            else
-                _work[_i] = new RpnItemOperandNumeric(funcNum(peekNum(2), peekNum(1)));
-            _work.RemoveRange(_i - 2, 2);
-        }
-
-        private void calcUnary(Func<double, double> func)
-        {
-            _work[_i] = new RpnItemOperandNumeric(func(peekNum(1)));
-            _work.RemoveAt(_i - 1);
-        }
-
-        private double peekNum(int i)
-        {
-            return ((RpnItemOperand) _work[_i - i]).Numeric;
-        }
-
-        private string peekStr(int i)
-        {
-            return ((RpnItemOperand)_work[_i - i]).String;
-        }
-
-        private void calcQuestion()
-        {
-            _work[_i] = peekNum(2) == 0
-                ? new RpnItemOperandString(null)
-                : _work[_i] = _work[_i - 1];
-            _work.RemoveRange(_i - 2, 2);
+            Evaluate = (Func<object[], object>) method.CreateDelegate(typeof(Func<object[], object>));
         }
 
     }

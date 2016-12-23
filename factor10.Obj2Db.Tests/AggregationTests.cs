@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using factor10.Obj2Db.Tests.TestData;
+using factor10.Obj2Db.Tests.TestDataStructures;
 using NUnit.Framework;
 
 namespace factor10.Obj2Db.Tests
@@ -15,12 +16,12 @@ namespace factor10.Obj2Db.Tests
         [OneTimeSetUp]
         public void Test()
         {
-            var spec = EntitySpec.Begin()
+            var spec = entitySpec.Begin()
                 .Add("FirstName")
                 .Add("AggregatedX").Aggregates("Structs.X")
-                .Add(EntitySpec.Begin("Structs").NotSaved()
+                .Add(entitySpec.Begin("Structs").NotSaved()
                     .Add("X"))
-                .Add(EntitySpec.Begin("SelfList")
+                .Add(entitySpec.Begin("SelfList")
                     .Add("Double"))
                 .Add("AggregatedDouble").Aggregates("SelfList.Double")
                 ;
@@ -78,6 +79,32 @@ namespace factor10.Obj2Db.Tests
         {
             Assert.AreEqual("Double", _topTable.Rows.Single().Columns[2].GetType().Name);
         }
+
+    }
+
+    [TestFixture]
+    public class TestFormulaAndNoSaveAndDictionary
+    {
+        [Test]
+        public void Test()
+        {
+            var spec = entitySpec.Begin()
+                .Add(entitySpec.Begin("DictionariesAreSneaky")
+                    .Add("KeyValue").Formula("Key+Value")
+                    .Add("Key").NotSaved()
+                    .Add("Value").NotSaved());
+            var x = new TestClassWithSneakyStuff
+            {
+                DictionariesAreSneaky = new Dictionary<int, int>
+                    {{1, 99}, {5, 15}}
+            };
+
+            var export = new Export<TestClassWithSneakyStuff>(spec);
+            export.Run(x);
+
+            var t = export.TableManager.GetWithAllData().Single(_ => _.Name== "DictionariesAreSneaky");
+            CollectionAssert.AreEquivalent(new[] {100, 20}, t.Rows.Select(_ => _.Columns.Single()));
+        }   
 
     }
 

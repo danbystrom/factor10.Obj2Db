@@ -21,8 +21,8 @@ namespace factor10.Obj2Db.Tests
         [TestCase("SomeStruct.X==SomeStruct.Y", 1)]
         public void TestFiltering(string whereClause, int expectedRowCount)
         {
-            var spec = EntitySpec.Begin()
-                .Add(EntitySpec.Begin("SelfList").Where(whereClause)
+            var spec = entitySpec.Begin()
+                .Add(entitySpec.Begin("SelfList").Where(whereClause)
                     .Add("SumXY").Formula("SomeStruct.X+SomeStruct.Y")
                     .Add("SomeStruct.X")
                     .Add("SomeStruct.Y"));
@@ -47,8 +47,8 @@ namespace factor10.Obj2Db.Tests
         public void TestThatFilterOnFieldThrows()
         {
             var ex = Assert.Throws<Exception>(() =>
-                EntitySpec.Begin()
-                    .Add(EntitySpec.Begin("SelfList")
+                entitySpec.Begin()
+                    .Add(entitySpec.Begin("SelfList")
                         .Add("SumXY").Where("SumXY")
                         .Add("SomeStruct.X")
                         .Add("SomeStruct.Y")));
@@ -80,10 +80,10 @@ namespace factor10.Obj2Db.Tests
                     }
                 }
             };
-            var spec = EntitySpec.Begin()
-                .Add(EntitySpec.Begin("Classes").Where("Name!='Klass 1'")
+            var spec = entitySpec.Begin()
+                .Add(entitySpec.Begin("Classes").Where("Name!='Klass 1'")
                     .Add("Name")
-                    .Add(EntitySpec.Begin("Students")
+                    .Add(entitySpec.Begin("Students")
                         .Add("FirstName")
                         .Add("LastName")));
 

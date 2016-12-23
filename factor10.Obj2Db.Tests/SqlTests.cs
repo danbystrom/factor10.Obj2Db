@@ -27,7 +27,7 @@ namespace factor10.Obj2Db.Tests
                 TheInt64 = (long) 1E18,
                 TheBool = true,
             };
-            var export = new Export<AllPropertyTypes>(EntitySpec.Begin()
+            var export = new Export<AllPropertyTypes>(entitySpec.Begin()
                 .Add("TheBool")
                 .Add("TheString")
                 .Add("TheDateTime")
@@ -43,6 +43,10 @@ namespace factor10.Obj2Db.Tests
                 .Add("TheStringProperty")
                 .Add("TheInt32Property")
                 .Add("TheNullableInt32Property")
+                .Add("formulanumber1").Formula("3")
+                .Add("formulanumber2").Formula("TheInt32")
+                .Add("formulastring1").Formula("'nisse'")
+                .Add("formulastring2").Formula("'TheStringProperty'")
                 );
             export.Run(_data);
             _table = export.TableManager.GetWithAllData().Single();
@@ -70,7 +74,11 @@ namespace factor10.Obj2Db.Tests
                     "[TheNullableInt] integer",
                     "[TheStringProperty] nvarchar(max)",
                     "[TheInt32Property] integer not null",
-                    "[TheNullableInt32Property] integer)"
+                    "[TheNullableInt32Property] integer",
+                    "[formulanumber1] float not null",
+                    "[formulanumber2] float not null",
+                    "[formulastring1] nvarchar(max)",
+                    "[formulastring2] nvarchar(max))",
                 },
                 _createSql.Split(",".ToCharArray()));
         }

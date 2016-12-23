@@ -10,7 +10,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimpleFormula()
         {
-            var spec = EntitySpec.Begin()
+            var spec = entitySpec.Begin()
                 .Add("Double")
                 .Add("kalle").Formula("3+Double")
                 .Add("nisse").Formula("5*6")

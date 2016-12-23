@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Runtime.InteropServices;
+using Utils;
 
 namespace factor10.Obj2Db
 {
@@ -12,6 +14,7 @@ namespace factor10.Obj2Db
         void Save(ITable table);
         void Flush();
         List<ITable> GetWithAllData();
+        Dictionary<string, int> GetExportedSummary();
     }
 
     public sealed class SqlTableManager : ITableManager
@@ -54,7 +57,7 @@ namespace factor10.Obj2Db
                     SqlBulkCopyOptions.FireTriggers |
                     SqlBulkCopyOptions.UseInternalTransaction,
                     null) {DestinationTableName = table.Name};
-                bulkCopy.WriteToServer(tbl.AsDataTable());
+                bulkCopy.WriteToServer(tbl.ExtractDataTable());
                 tbl.Rows.Clear();
             }
         }
@@ -95,12 +98,18 @@ namespace factor10.Obj2Db
             }
         }
 
+        public Dictionary<string, int> GetExportedSummary()
+        {
+            var lookup = _tables.ToLookup(_ => _.Name, _ => _.SavedRowCount);
+            return lookup.ToDictionary(_ => _.Key, _ => _.Sum());
+        }
+
     }
 
     public class InMemoryTableManager : ITableManager
     {
         public readonly List<Table> Tables = new List<Table>();
-         
+
         public ITable New(Entity entity, bool hasForeignKey)
         {
             lock (this)
@@ -131,7 +140,16 @@ namespace factor10.Obj2Db
                         tables[0].Rows.Add(tr);
                 result.Add(tables[0]);
             }
+            foreach (var t in result)
+                foreach (var row in t.Rows)
+                    Array.Resize(ref row.Columns, t.Fields.Count);
             return result;
+        }
+
+        public Dictionary<string, int> GetExportedSummary()
+        {
+            var lookup = Tables.ToLookup(_ => _.Name, _ => _.Rows.Count);
+            return lookup.ToDictionary(_ => _.Key, _ => _.Sum());
         }
 
     }

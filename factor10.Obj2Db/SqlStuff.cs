@@ -11,7 +11,7 @@ namespace factor10.Obj2Db
 {
     public class SqlStuff
     {
-        private const string ConnectionStringBase = @"Data Source=localhost\SQLEXPRESS;Initial Catalog={0};Integrated Security=SSPI;";
+        private const string ConnectionStringBase = @"Data Source=localhost\SQLEXPRESS;Initial Catalog={0};User ID=nisse;password=nisse";
 
         public static Dictionary<string, string> ColumnTypes = new Dictionary<string, string>
         {

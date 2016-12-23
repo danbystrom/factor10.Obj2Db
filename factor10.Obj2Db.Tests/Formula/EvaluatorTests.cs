@@ -187,6 +187,21 @@ namespace factor10.Obj2Db.Tests.Formula
             Assert.AreEqual(8, value.Numeric);
         }
 
+        [TestCase("a", "b", "a")]
+        [TestCase(null, null, null)]
+        [TestCase("c", null, "c")]
+        [TestCase(null, "d", "d")]
+        public void TestNullCoalescing(string var1, string var2, string expected)
+        {
+            var rpn = new Rpn("var1??var2");
+            Assert.AreEqual("var1 var2 ??", rpn.ToString());
+
+            var eval = new EvaluateRpn(rpn, new List<Tuple<string, Type>>
+            {Tuple.Create("var1", typeof (string)),Tuple.Create("var2", typeof (string))});
+            var value = eval.Eval(new object[] { var1, var2 });
+            Assert.AreEqual(expected, value.String);
+        }
+
         //[TestCase(0, "kalle", "nisse", "kalle")]
         //[TestCase(0, null, "nisse", null)]
         //[TestCase(1, "kalle", "nisse", "")]

@@ -17,7 +17,7 @@ namespace factor10.Obj2Db
 
     public sealed class Entity
     {
-        public readonly EntitySpec Spec;
+        public readonly entitySpec Spec;
 
         public string Name => Spec.name;
         public readonly string ExternalName;
@@ -46,12 +46,12 @@ namespace factor10.Obj2Db
             FieldInfo = fieldInfo;
             FieldType = fieldInfo.FieldType;
             TypeName = FieldType.Name;
-            Spec = EntitySpec.Begin(name ?? TypeName);
+            Spec = entitySpec.Begin(name ?? TypeName);
             ExternalName = Name.Replace(".", "");
             TypeOfEntity = TypeOfEntity.PlainField;
         }
 
-        public Entity(Type type, EntitySpec entitySpec)
+        public Entity(Type type, entitySpec entitySpec)
         {
             Spec = entitySpec;
             ExternalName = entitySpec.externalname ?? Name?.Replace(".", "");
@@ -66,7 +66,7 @@ namespace factor10.Obj2Db
             else if (!string.IsNullOrEmpty(Spec.formula))
                 TypeOfEntity = TypeOfEntity.Formula;
             else if (Name == null)
-                Spec = EntitySpec.Begin(type.Name);
+                Spec = entitySpec.Begin(type.Name);
             else
             {
                 FieldInfo = new LinkedFieldInfo(type, Name);
@@ -74,10 +74,10 @@ namespace factor10.Obj2Db
                 if (FieldInfo.IEnumerable != null)
                 {
                     type = FieldInfo.IEnumerable.GetGenericArguments()[0];
-                    if (entitySpec.IsField || (entitySpec.Fields.First().name == "*" && !getAllFieldsAndProperties(type).Any()))
+                    if (entitySpec.fields==null || !entitySpec.fields.Any() || (entitySpec.fields.First().name == "*" && !getAllFieldsAndProperties(type).Any()))
                         Fields.Add(new Entity(null, LinkedFieldInfo.Null(type)));
                 }
-                else if (entitySpec.IsField)
+                else if (entitySpec.fields==null || !entitySpec.fields.Any())
                     TypeOfEntity = TypeOfEntity.PlainField;
                 else
                     throw new Exception("Unknown error");
@@ -114,7 +114,12 @@ namespace factor10.Obj2Db
             var fieldInfosForEvaluator = Fields.Select(_ => Tuple.Create(_.Name, _.FieldType)).ToList();
             //...and to construct the evaluators
             foreach (var field in Fields.Where(field => field.TypeOfEntity == TypeOfEntity.Formula))
+            {
                 field._evaluator = new EvaluateRpn(new Rpn(field.Spec.formula), fieldInfosForEvaluator);
+                field.FieldType = field._evaluator.TypeEval() is RpnItemOperandNumeric
+                    ? typeof(double)
+                    : typeof(string);
+            }
 
             if (TypeOfEntity == TypeOfEntity.Class && !string.IsNullOrEmpty(Spec.where))
                 _evaluator = new EvaluateRpn(new Rpn(Spec.where), fieldInfosForEvaluator);
@@ -130,9 +135,11 @@ namespace factor10.Obj2Db
             _formulaFields = Fields.Where(_ => _.TypeOfEntity == TypeOfEntity.Formula).ToArray();
         }
 
-        private void breakDownSubEntities(Type type, EntitySpec entitySpec)
+        private void breakDownSubEntities(Type type, entitySpec entitySpec)
         {
-            foreach (var subEntitySpec in entitySpec.Fields)
+            if (entitySpec.fields == null)
+                return;
+            foreach (var subEntitySpec in entitySpec.fields)
             {
                 subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
                 foreach (var subEntity in expansionOverStar(type, subEntitySpec, new HashSet<Type>()))
@@ -142,7 +149,7 @@ namespace factor10.Obj2Db
 
         private static IEnumerable<Entity> expansionOverStar(
             Type masterType,
-            EntitySpec subEntitySpec,
+            entitySpec subEntitySpec,
             HashSet<Type> haltRecursion,
             string prefix = "",
             Type subType = null)
@@ -159,16 +166,11 @@ namespace factor10.Obj2Db
                 throw new Exception("Circular reference detected while processing inclusion of all fields ('*')");
             haltRecursion.Add(subType);
 
-            Console.WriteLine(masterType.Name);
-            if (subType.Name.EndsWith("ContractSection"))
-            {
-            }
-
             foreach (var nameAndType in getAllFieldsAndProperties(subType))
             {
                 if (nameAndType.Type == typeof(object))
                     continue;
-                var spec = EntitySpec.Begin(prefix + nameAndType.Name);
+                var spec = entitySpec.Begin(prefix + nameAndType.Name);
                 var subProperties = getAllFieldsAndProperties(nameAndType.Type);
                 if (LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type) != null)
                 {
