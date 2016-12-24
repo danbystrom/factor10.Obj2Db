@@ -34,7 +34,7 @@ namespace factor10.Obj2Db
         {
             TableManager = tableManager;
             _flushThreshold = flushThreshold;
-            Name = entity.ExternalName ?? entity.TypeName;
+            Name = entity.ExternalName;
             HasForeignKey = hasForeignKey;
             Fields = entity.Fields.Where(_ => !_.NoSave).Select(_ => new NameAndType(_.ExternalName, _.FieldType)).ToList();
             if(Fields.Any(_ => string.IsNullOrEmpty(_.Name)))

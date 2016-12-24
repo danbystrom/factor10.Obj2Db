@@ -13,7 +13,7 @@ namespace factor10.Obj2Db
 
         public Export(entitySpec entitySpec, ITableManager tableManager = null)
         {
-            Entity = new Entity(typeof (T), entitySpec);
+            Entity = Entity.Create(typeof (T), entitySpec);
             TableManager = tableManager ?? new InMemoryTableManager();
         }
 

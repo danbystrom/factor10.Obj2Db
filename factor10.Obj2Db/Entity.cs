@@ -20,14 +20,15 @@ namespace factor10.Obj2Db
         public readonly entitySpec Spec;
 
         public string Name => Spec.name;
-        public readonly string ExternalName;
-        public readonly string TypeName;
+        //public readonly string ExternalName;
         public readonly LinkedFieldInfo FieldInfo;
         public readonly TypeOfEntity TypeOfEntity;
 
         public readonly List<Entity> Fields = new List<Entity>();
         private readonly Entity[] _plainFields;
         private readonly Entity[] _formulaFields;
+
+        public string ExternalName => Spec.externalname ?? Name?.Replace(".", "");
 
         public readonly int SaveableFieldCount;
         public List<Entity> Lists { get; } = new List<Entity>();
@@ -45,26 +46,30 @@ namespace factor10.Obj2Db
         {
             FieldInfo = fieldInfo;
             FieldType = fieldInfo.FieldType;
-            TypeName = FieldType.Name;
-            Spec = entitySpec.Begin(name ?? TypeName);
-            ExternalName = Name.Replace(".", "");
+            Spec = entitySpec.Begin(name ?? FieldType.Name);
             TypeOfEntity = TypeOfEntity.PlainField;
         }
 
-        public Entity(Type type, entitySpec entitySpec)
+        public static Entity Create(Type type, entitySpec entitySpec)
+        {
+            return new Entity(type, entitySpec);
+        }
+
+        private Entity(Type type, entitySpec entitySpec)
         {
             Spec = entitySpec;
-            ExternalName = entitySpec.externalname ?? Name?.Replace(".", "");
             NoSave = entitySpec.nosave;
 
-            if (ExternalName == "mostRecentBfDmetadataKeys")
-            {
-            }
-
             if (!string.IsNullOrEmpty(Spec.aggregation))
+            {
                 TypeOfEntity = TypeOfEntity.Aggregation;
+                return;
+            }
             else if (!string.IsNullOrEmpty(Spec.formula))
+            {
                 TypeOfEntity = TypeOfEntity.Formula;
+                return;
+            }
             else if (Name == null)
                 Spec = entitySpec.Begin(type.Name);
             else
@@ -74,16 +79,15 @@ namespace factor10.Obj2Db
                 if (FieldInfo.IEnumerable != null)
                 {
                     type = FieldInfo.IEnumerable.GetGenericArguments()[0];
-                    if (entitySpec.fields==null || !entitySpec.fields.Any() || (entitySpec.fields.First().name == "*" && !getAllFieldsAndProperties(type).Any()))
+                    if (entitySpec.fields == null || !entitySpec.fields.Any() ||
+                        (entitySpec.fields.First().name == "*" && !getAllFieldsAndProperties(type).Any()))
                         Fields.Add(new Entity(null, LinkedFieldInfo.Null(type)));
                 }
-                else if (entitySpec.fields==null || !entitySpec.fields.Any())
+                else if (entitySpec.fields == null || !entitySpec.fields.Any())
                     TypeOfEntity = TypeOfEntity.PlainField;
                 else
                     throw new Exception("Unknown error");
             }
-
-            TypeName = type.Name;
 
             breakDownSubEntities(type, entitySpec);
 
