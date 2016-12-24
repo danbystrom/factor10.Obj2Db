@@ -163,6 +163,27 @@ namespace factor10.Obj2Db
             return iconvertible != null && _coherse != null ? _coherse(iconvertible) : obj;
         }
 
+        public static List<NameAndType> GetAllFieldsAndProperties(Type type)
+        {
+            var list = new List<NameAndType>();
+            if (type == typeof(string) || type.IsArray || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)))
+                return list;
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(_ => _.GetIndexParameters().Length == 0);
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.IsSpecialName);
+            list.AddRange(properties.Select(_ => new NameAndType(_)));
+            list.AddRange(fields.Select(_ => new NameAndType(_)));
+            for (; type != null && type != typeof(object); type = type.BaseType)
+                if (type.IsGenericType)
+                {
+                    var genTypDef = type.GetGenericTypeDefinition();
+                    if (genTypDef == typeof(List<>) || genTypDef == typeof(IList<>))
+                        list.RemoveAll(_ => new[] { "Capacity", "Count" }.Contains(_.Name));
+                    if (genTypDef == typeof(Dictionary<,>) || genTypDef == typeof(IDictionary<,>))
+                        list.RemoveAll(_ => new[] { "Comparer", "Count", "Keys", "Values" }.Contains(_.Name));
+                }
+            return list;
+        }
+
     }
 
 }

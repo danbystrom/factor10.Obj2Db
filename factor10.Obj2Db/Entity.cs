@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using factor10.Obj2Db.Formula;
 
 namespace factor10.Obj2Db
@@ -15,28 +14,59 @@ namespace factor10.Obj2Db
         Formula
     }
 
-    public sealed class Entity
+    public class EntityFormula : Entity
     {
-        public readonly entitySpec Spec;
+        public EntityFormula(entitySpec entitySpec)
+            : base(entitySpec)
+        {
+            TypeOfEntity = TypeOfEntity.Formula;
+        }
+    }
+
+    public class EntityAggregation : Entity
+    {
+        public EntityAggregation(entitySpec entitySpec)
+            : base(entitySpec)
+        {
+            TypeOfEntity = TypeOfEntity.Aggregation;
+        }
+    }
+
+    public class EntityPlainField : Entity
+    {
+        public EntityPlainField(entitySpec entitySpec, LinkedFieldInfo linkedFieldInfo)
+            : base(entitySpec)
+        {
+            TypeOfEntity = TypeOfEntity.PlainField;
+            FieldInfo = linkedFieldInfo;
+            FieldType = FieldInfo.FieldType;
+        }
+    }
+
+    public class Entity
+    {
+        protected virtual void ParentComplete()
+        { }
+
+        public entitySpec Spec { get; private set; }
 
         public string Name => Spec.name;
-        //public readonly string ExternalName;
-        public readonly LinkedFieldInfo FieldInfo;
-        public readonly TypeOfEntity TypeOfEntity;
+        public LinkedFieldInfo FieldInfo { get; protected set; }
+        public TypeOfEntity TypeOfEntity { get; protected set; }
 
         public readonly List<Entity> Fields = new List<Entity>();
-        private readonly Entity[] _plainFields;
-        private readonly Entity[] _formulaFields;
+        private Entity[] _plainFields;
+        private Entity[] _formulaFields;
 
         public string ExternalName => Spec.externalname ?? Name?.Replace(".", "");
 
-        public readonly int SaveableFieldCount;
+        public int SaveableFieldCount { get; private set; }
         public List<Entity> Lists { get; } = new List<Entity>();
 
         public readonly bool NoSave;
         public int ResultSetIndex { get; private set; }
 
-        public Type FieldType { get; private set; }
+        public Type FieldType { get; protected set; }
 
         public readonly List<Tuple<int, int>> AggregationMapper = new List<Tuple<int, int>>();
 
@@ -50,46 +80,60 @@ namespace factor10.Obj2Db
             TypeOfEntity = TypeOfEntity.PlainField;
         }
 
-        public static Entity Create(Type type, entitySpec entitySpec)
-        {
-            return new Entity(type, entitySpec);
-        }
-
-        private Entity(Type type, entitySpec entitySpec)
+        protected Entity(entitySpec entitySpec)
         {
             Spec = entitySpec;
             NoSave = entitySpec.nosave;
+        }
 
-            if (!string.IsNullOrEmpty(Spec.aggregation))
-            {
-                TypeOfEntity = TypeOfEntity.Aggregation;
-                return;
-            }
-            else if (!string.IsNullOrEmpty(Spec.formula))
-            {
-                TypeOfEntity = TypeOfEntity.Formula;
-                return;
-            }
-            else if (Name == null)
-                Spec = entitySpec.Begin(type.Name);
-            else
+        public static Entity Create(Type type, entitySpec entitySpec)
+        {
+            return create(
+                type,
+                new entitySpec
+                {
+                    name = entitySpec.name ?? type.Name,
+                    externalname = entitySpec.externalname,
+                    fields = entitySpec.fields
+                },
+                true);
+        }
+
+        private static Entity create(Type type, entitySpec entitySpec, bool isTopLevel = false)
+        {
+            if (!string.IsNullOrEmpty(entitySpec.aggregation))
+                return new EntityAggregation(entitySpec);
+            if (!string.IsNullOrEmpty(entitySpec.formula))
+                return new EntityFormula(entitySpec);
+
+            var entity = new Entity(entitySpec);
+            entity.nisse(type, isTopLevel);
+            return entity;
+        }
+
+        private void nisse(Type type, bool isTopLevel = false)
+        {
+            if (!isTopLevel)
             {
                 FieldInfo = new LinkedFieldInfo(type, Name);
                 FieldType = FieldInfo.FieldType;
                 if (FieldInfo.IEnumerable != null)
                 {
                     type = FieldInfo.IEnumerable.GetGenericArguments()[0];
-                    if (entitySpec.fields == null || !entitySpec.fields.Any() ||
-                        (entitySpec.fields.First().name == "*" && !getAllFieldsAndProperties(type).Any()))
+                    if (Spec.fields == null || !Spec.fields.Any() ||
+                        (Spec.fields.First().name == "*" && !LinkedFieldInfo.GetAllFieldsAndProperties(type).Any()))
                         Fields.Add(new Entity(null, LinkedFieldInfo.Null(type)));
                 }
-                else if (entitySpec.fields == null || !entitySpec.fields.Any())
+                else if (Spec.fields == null || !Spec.fields.Any())
+                {
                     TypeOfEntity = TypeOfEntity.PlainField;
+                    return;
+                }
                 else
                     throw new Exception("Unknown error");
             }
 
-            breakDownSubEntities(type, entitySpec);
+            breakDownSubEntities(type);
 
             // move the nosave fields to be at the end of the list - this feature is not completed and has no tests
             var noSaveFields = Fields.Where(_ => _.NoSave).ToList();
@@ -139,11 +183,11 @@ namespace factor10.Obj2Db
             _formulaFields = Fields.Where(_ => _.TypeOfEntity == TypeOfEntity.Formula).ToArray();
         }
 
-        private void breakDownSubEntities(Type type, entitySpec entitySpec)
+        private void breakDownSubEntities(Type type)
         {
-            if (entitySpec.fields == null)
+            if (Spec.fields == null)
                 return;
-            foreach (var subEntitySpec in entitySpec.fields)
+            foreach (var subEntitySpec in Spec.fields)
             {
                 subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
                 foreach (var subEntity in expansionOverStar(type, subEntitySpec, new HashSet<Type>()))
@@ -160,7 +204,7 @@ namespace factor10.Obj2Db
         {
             if (subEntitySpec.name != "*")
             {
-                yield return new Entity(masterType, subEntitySpec);
+                yield return create(masterType, subEntitySpec);
                 yield break;
             }
 
@@ -170,56 +214,36 @@ namespace factor10.Obj2Db
                 throw new Exception("Circular reference detected while processing inclusion of all fields ('*')");
             haltRecursion.Add(subType);
 
-            foreach (var nameAndType in getAllFieldsAndProperties(subType))
+            foreach (var nameAndType in LinkedFieldInfo.GetAllFieldsAndProperties(subType))
             {
                 if (nameAndType.Type == typeof(object))
                     continue;
                 var spec = entitySpec.Begin(prefix + nameAndType.Name);
-                var subProperties = getAllFieldsAndProperties(nameAndType.Type);
+                var subProperties = LinkedFieldInfo.GetAllFieldsAndProperties(nameAndType.Type);
                 if (LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type) != null)
                 {
                     spec.Add("*");
-                    yield return new Entity(masterType, spec);
+                    yield return create(masterType, spec);
                 }
                 else if (!subProperties.Any())
-                    yield return new Entity(masterType, spec);
+                    yield return create(masterType, spec);
 
                 foreach (var liftedSubProperty in subProperties)
                 {
                     if (liftedSubProperty.Type == typeof(object))
                         continue;
                     var propName = $"{prefix}{nameAndType.Name}.{liftedSubProperty.Name}";
-                    if (getAllFieldsAndProperties(liftedSubProperty.Type).Any())
+                    if (LinkedFieldInfo.GetAllFieldsAndProperties(liftedSubProperty.Type).Any())
                         foreach (var q in expansionOverStar(masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
                             yield return q;
                     else
-                        yield return new Entity(masterType, propName);
+                        yield return create(masterType, propName);
                 }
             }
 
             haltRecursion.Remove(subType);
         }
 
-        private static List<NameAndType> getAllFieldsAndProperties(Type type)
-        {
-            var list = new List<NameAndType>();
-            if (type == typeof(string) || type.IsArray || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)))
-                return list;
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(_ => _.GetIndexParameters().Length == 0);
-            var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.IsSpecialName);
-            list.AddRange(properties.Select(_ => new NameAndType(_)));
-            list.AddRange(fields.Select(_ => new NameAndType(_)));
-            for (; type != null && type != typeof(object); type = type.BaseType)
-                if (type.IsGenericType)
-                {
-                    var genTypDef = type.GetGenericTypeDefinition();
-                    if (genTypDef == typeof(List<>) || genTypDef == typeof(IList<>))
-                        list.RemoveAll(_ => new[] {"Capacity", "Count"}.Contains(_.Name));
-                    if (genTypDef == typeof(Dictionary<,>) || genTypDef == typeof(IDictionary<,>))
-                        list.RemoveAll(_ => new[] {"Comparer", "Count", "Keys", "Values"}.Contains(_.Name));
-                }
-            return list;
-        }
 
         public IEnumerable GetIEnumerable(object obj)
         {

@@ -15,7 +15,7 @@ namespace factor10.Obj2Db
         public string formula;
         public string where;
 
-        private entitySpec()
+        public entitySpec()
         {
         }
 
