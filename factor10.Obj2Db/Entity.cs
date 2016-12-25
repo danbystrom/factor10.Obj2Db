@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace factor10.Obj2Db
 {
@@ -21,7 +20,7 @@ namespace factor10.Obj2Db
         public readonly bool NoSave;
         public int ResultSetIndex { get; set; }
 
-        public Type FieldType { get; set; }
+        public Type FieldType { get; protected set; }
 
         // when an aggregation field is specified, this is set in the entity that holds the aggregated result (the subentity), 
         // so that the result value can be be aggregated up to the correct value in the parent
@@ -56,9 +55,9 @@ namespace factor10.Obj2Db
                 return new EntityFormula(entitySpec);
 
             var fieldInfo = new LinkedFieldInfo(type, entitySpec.name);
-            if (fieldInfo.Enumerable != null)
-                return new EntityClass(entitySpec, fieldInfo.Enumerable.GetGenericArguments()[0], fieldInfo);
-            if (entitySpec.fields == null || !entitySpec.fields.Any())
+            if (fieldInfo.IEnumerable != null)
+                return new EntityClass(entitySpec, fieldInfo.IEnumerable.GetGenericArguments()[0], fieldInfo);
+            if (!entitySpec.Any())
                 return new EntityPlainField(entitySpec, fieldInfo);
 
             throw new Exception("Unknown error");

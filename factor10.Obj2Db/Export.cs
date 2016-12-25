@@ -13,7 +13,7 @@ namespace factor10.Obj2Db
 
         public Export(entitySpec entitySpec, ITableManager tableManager = null)
         {
-            TopEntity = Entity.Create(typeof (T), entitySpec);
+            TopEntity = Entity.Create(typeof(T), entitySpec);
             TableManager = tableManager ?? new InMemoryTableManager();
         }
 
@@ -35,20 +35,20 @@ namespace factor10.Obj2Db
         private object[] run(EntityWithTable ewt, object obj, Guid parentRowId)
         {
             var pk = Guid.NewGuid();
-            var rowResult = ewt.Entity.GetRow(obj);
+            var rowResult = new object[ewt.Entity.Fields.Count];
             foreach (var aggregator in ewt.GetSubEntitities(rowResult))
             {
                 var enumerable = aggregator.EntityWithTable.Entity.GetIEnumerable(obj);
                 if (enumerable == null)
                     continue;
-                var hasAggregation = aggregator.HasAggragation;
-                foreach (var itm in enumerable)
-                {
-                    var subResult = run(aggregator.EntityWithTable, itm, pk);
-                    if (hasAggregation)
-                        aggregator.UpdateWith(rowResult, subResult);
-                }
+                if (aggregator.HasAggragation)
+                    foreach (var itm in enumerable)
+                        aggregator.UpdateWith(rowResult, run(aggregator.EntityWithTable, itm, pk));
+                else
+                    foreach (var itm in enumerable)
+                        run(aggregator.EntityWithTable, itm, pk);
             }
+            ewt.Entity.AssignValue(rowResult, obj);
             if (ewt.Entity.PassesFilter(rowResult))
                 ewt.Table?.AddRow(pk, parentRowId, rowResult);
             return rowResult;

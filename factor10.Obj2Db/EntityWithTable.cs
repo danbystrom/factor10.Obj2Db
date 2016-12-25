@@ -8,7 +8,6 @@ namespace factor10.Obj2Db
         public readonly EntityClass Entity;
         public readonly ITable Table;
 
-        //public readonly List<EntityWithTable> Lists = new List<EntityWithTable>();
         public readonly List<Aggregator> Aggregators = new List<Aggregator>();
 
         public EntityWithTable(EntityClass entity, ITableManager t, bool hasFk = false)

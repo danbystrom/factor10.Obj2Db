@@ -108,4 +108,65 @@ namespace factor10.Obj2Db.Tests
 
     }
 
+    public class Nisse
+    {
+        public List<int> List1;
+        public List<int> List2;
+        public List<List<int>> List3;
+    }
+
+    [TestFixture]
+    public class TestGurka
+    {
+        [Test]
+        public void TestThatAggregatedValuesCanBeUsedInFormulas()
+        {
+            var spec = entitySpec.Begin()
+                .Add("SumList1").Aggregates("List1.value").NotSaved()
+                .Add("SumList2").Aggregates("List2.value").NotSaved()
+                .Add("Average").Formula("(SumList1+SumList2)/2")
+                .Add("List1")
+                .Add("List2")
+                .Add("List3");
+            var x = new Nisse
+            {
+                List1 = new List<int> {5, 6, 7},
+                List2 = new List<int> {20},
+                List3 = new List<List<int>> {new List<int> {15}, new List<int> { 15,16,17 }, new List<int> { 18 } }
+            };
+
+            var export = new Export<Nisse>(spec);
+            export.Run(x);
+
+            var t = export.TableManager.GetWithAllData().First();
+
+            CollectionAssert.AreEqual(new[] {19}, t.Rows.Single().Columns);
+        }
+
+    }
+
+    [TestFixture]
+    public class TestGurka2
+    {
+        [Test]
+        public void TestThatAggregatedValuesCanBeUsedInFormulas()
+        {
+            var spec = entitySpec.Begin()
+                .Add(entitySpec.Begin("List3")
+                    ); //.Add("."));
+            var x = new Nisse
+            {
+                List3 = new List<List<int>> { new List<int> { 15 }, new List<int> { 15, 16, 17 }, new List<int> { 18 } }
+            };
+
+            var export = new Export<Nisse>(spec);
+            export.Run(x);
+
+            var t = export.TableManager.GetWithAllData().First();
+
+            CollectionAssert.AreEqual(new[] { 19 }, t.Rows.Single().Columns);
+        }
+
+    }
+
 }

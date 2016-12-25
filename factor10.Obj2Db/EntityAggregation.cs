@@ -3,11 +3,17 @@ using System.Linq;
 
 namespace factor10.Obj2Db
 {
-    public class EntityAggregation : Entity
+    public class EntityAggregation : EntityFormula
     {
         public EntityAggregation(entitySpec entitySpec)
             : base(entitySpec)
         {
+        }
+
+        public override void AssignValue(object[] result, object obj)
+        {
+            if(Evaluator!=null)
+                base.AssignValue(result, obj);
         }
 
         public override void ParentInitialized(Entity parent, int index)
@@ -22,6 +28,9 @@ namespace factor10.Obj2Db
                 throw new Exception();
             subEntity.AggregationMapper.Add(Tuple.Create(subFieldIndex, index));
             FieldType = subEntity.Fields[subFieldIndex].FieldType;
+
+            if (!string.IsNullOrEmpty(Spec.formula))
+                base.ParentInitialized(parent, index);
         }
 
     }

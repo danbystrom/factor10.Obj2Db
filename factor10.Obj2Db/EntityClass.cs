@@ -8,7 +8,7 @@ namespace factor10.Obj2Db
 {
     public sealed class EntityClass : Entity
     {
-        private readonly EvaluateRpn _evaluator;
+        private readonly EvaluateRpn _whereClause;
         private readonly Entity[] _fieldsThenFormulas;
 
         public EntityClass(entitySpec entitySpec, Type type, LinkedFieldInfo fieldInfo)
@@ -17,21 +17,28 @@ namespace factor10.Obj2Db
             FieldInfo = fieldInfo;
             FieldType = fieldInfo?.FieldType;
 
-            if (Spec.fields == null || !Spec.fields.Any() ||
-                (Spec.fields.First().name == "*" && !LinkedFieldInfo.GetAllFieldsAndProperties(type).Any()))
-                Fields.Add(new EntitySolitaire(type));
+            if (!Spec.Any() || isStarExpansionAndNoRealSubProperties(type))
+            {
+                var enumerable = LinkedFieldInfo.CheckForIEnumerable(type);
+                if (LinkedFieldInfo.CheckForIEnumerable(type) == null)
+                    Fields.Add(new EntitySolitaire(type));
+                else
+                    throw new Exception("Working on this case...");
+                //else
+                //    Fields.Add(new EntityClass(entitySpec.Begin(), enumerable, null));
+            }
 
             breakDownSubEntities(type);
 
-            // move the nosave fields to be at the end of the list - this feature is not completed and has no tests
+            // move the nosave fields to always be at the end of the list - this feature is not completed and has no tests
             var noSaveFields = Fields.Where(_ => _.NoSave).ToList();
             Fields.RemoveAll(_ => _.NoSave);
             SaveableFieldCount = Fields.Count;
             Fields.AddRange(noSaveFields);
 
-            // this was to be able to serialze a contract, since "*" was digging up so much garbage...
-            Fields.RemoveAll(_ =>
-                _ is EntityPlainField && SqlStuff.Field2Sql(new NameAndType(null, _.FieldType), true) == null);
+            // this is temporary - to be able to serialze a contract with "*" since it was digging up so much garbage...
+            // need to investigae each "garbage" occurrence and handle it more elegant
+            Fields.RemoveAll(_ => _ is EntityPlainField && SqlStuff.Field2Sql(_.NameAndType, true) == null);
             Lists.RemoveAll(_ => !_.Fields.Any() && !_.Lists.Any());
 
             // now it's time to connect the aggregated fields
@@ -39,7 +46,7 @@ namespace factor10.Obj2Db
                 Fields[fi].ParentInitialized(this, fi);
 
             if ( !string.IsNullOrEmpty(Spec.where))
-                _evaluator = new EvaluateRpn(new Rpn(Spec.where), Fields.Select(_ => _.NameAndType).ToList());
+                _whereClause = new EvaluateRpn(new Rpn(Spec.where), Fields.Select(_ => _.NameAndType).ToList());
 
             for (var i = 0; i < Fields.Count; i++)
                 Fields[i].ResultSetIndex = i;
@@ -49,9 +56,7 @@ namespace factor10.Obj2Db
             {
                 if (w is EntityFormula)
                     return -1;
-                if (w is EntityPlainField)
-                    return 1;
-                return 0;
+                return 1;
             };
             fieldsThenFormulas.Sort((x, y) => q(y) - q(x));
             _fieldsThenFormulas = fieldsThenFormulas.ToArray();
@@ -70,6 +75,11 @@ namespace factor10.Obj2Db
                     else
                         Fields.Add(subEntity);
             }
+        }
+
+        private bool isStarExpansionAndNoRealSubProperties(Type type)
+        {
+            return Spec.fields.First().name == "*" && !LinkedFieldInfo.GetAllFieldsAndProperties(type).Any();
         }
 
         private static IEnumerable<Entity> expansionOverStar(
@@ -123,7 +133,7 @@ namespace factor10.Obj2Db
 
         public override bool PassesFilter(object[] rowResult)
         {
-            return _evaluator == null || _evaluator.Eval(rowResult).Numeric > 0;
+            return _whereClause == null || _whereClause.Eval(rowResult).Numeric > 0;
         }
 
         public IEnumerable GetIEnumerable(object obj)
@@ -131,14 +141,11 @@ namespace factor10.Obj2Db
             return (IEnumerable)FieldInfo.GetValue(obj);
         }
 
-        public object[] GetRow(object obj)
+        public override void AssignValue(object[] result, object obj)
         {
-            var result = new object[Fields.Count];
             foreach (var entity in _fieldsThenFormulas)
                 entity.AssignValue(result, obj);
-            return result;
         }
-
 
     }
 

@@ -25,7 +25,7 @@ namespace factor10.Obj2Db
         private readonly FieldInfo _fieldInfo;
         private readonly PropertyInfo _propertyInfo;
         public readonly LinkedFieldInfo Next;
-        public readonly Type Enumerable;
+        public readonly Type IEnumerable;
 
         public Type FieldType { get; private set; }
 
@@ -35,6 +35,14 @@ namespace factor10.Obj2Db
          
         public LinkedFieldInfo(Type type, string name)
         {
+            if (name == ".")
+            {
+                // auto-referencing
+                FieldType = type;
+                _getValue = _ => _;
+                return;
+            }
+
             var split = name.Split(".".ToCharArray(), 2);
             _fieldInfo = type.GetField(split[0], BindingFlags.Public | BindingFlags.Instance);
             if (_fieldInfo == null)
@@ -51,7 +59,7 @@ namespace factor10.Obj2Db
             while (x.Next != null)
                 x = x.Next;
             FieldType = x._fieldInfo?.FieldType ?? x._propertyInfo.PropertyType;
-            Enumerable = CheckForIEnumerable(FieldType);
+            IEnumerable = CheckForIEnumerable(FieldType);
             _cohersions.TryGetValue(StripNullable(FieldType).Name, out _coherse);
 
             if (_propertyInfo != null)
@@ -123,15 +131,9 @@ namespace factor10.Obj2Db
             return (Func<object, object>)method.CreateDelegate(typeof(Func<object, object>));
         }
 
-        private LinkedFieldInfo(Type type)
-        {
-            FieldType = type;
-            _getValue = _ => _;
-        }
-
         public static LinkedFieldInfo Null(Type type)
         {
-            return new LinkedFieldInfo(type);
+            return new LinkedFieldInfo(type, ".");
         }
 
         public object GetValueSlower(object obj)

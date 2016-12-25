@@ -26,7 +26,7 @@ namespace factor10.Obj2Db
 
         public entitySpec NotSaved()
         {
-            if (fields != null && fields.Any())
+            if (Any())
                 fields.Last().nosave = true;
             else
                 nosave = true;
@@ -37,7 +37,7 @@ namespace factor10.Obj2Db
         {
             if (string.IsNullOrEmpty(field))
                 throw new ArgumentException("Empty aggregate field name");
-            if (fields == null || !fields.Any())
+            if (!Any())
                 throw new Exception("Can only be called on field");
             fields.Last().aggregation = field;
             return this;
@@ -47,7 +47,7 @@ namespace factor10.Obj2Db
         {
             if (string.IsNullOrEmpty(expression))
                 throw new ArgumentException("Empty formula expression");
-            if (fields == null || !fields.Any())
+            if (!Any())
                 throw new Exception("Can only be called on field");
             fields.Last().formula = expression;
             return this;
@@ -55,7 +55,7 @@ namespace factor10.Obj2Db
 
         public entitySpec Where(string whereClause)
         {
-            if (fields!=null && fields.Any())
+            if (Any())
                 throw new Exception("Where can only be called on list");
             where = whereClause;
             return this;
@@ -67,6 +67,11 @@ namespace factor10.Obj2Db
                 fields = new List<entitySpec>();
             fields.Add(entitySpec);
             return this;
+        }
+
+        public bool Any()
+        {
+            return fields != null && fields.Any();
         }
 
         public static implicit operator entitySpec(string name)
