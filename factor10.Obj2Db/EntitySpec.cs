@@ -12,6 +12,7 @@ namespace factor10.Obj2Db
         public List<entitySpec> fields;
 
         public string aggregation;
+        public string aggregationtype;
         public string formula;
         public string where;
 
@@ -33,13 +34,14 @@ namespace factor10.Obj2Db
             return this;
         }
 
-        public entitySpec Aggregates(string field)
+        public entitySpec Aggregates(string field, string aggregationtype = "sum")
         {
             if (string.IsNullOrEmpty(field))
                 throw new ArgumentException("Empty aggregate field name");
             if (!Any())
                 throw new Exception("Can only be called on field");
             fields.Last().aggregation = field;
+            fields.Last().aggregationtype = aggregationtype;
             return this;
         }
 

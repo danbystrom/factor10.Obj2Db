@@ -20,10 +20,10 @@ namespace factor10.Obj2Db
             if (!Spec.Any() || isStarExpansionAndNoRealSubProperties(type))
             {
                 var enumerable = LinkedFieldInfo.CheckForIEnumerable(type);
-                if (LinkedFieldInfo.CheckForIEnumerable(type) == null)
+                //if (LinkedFieldInfo.CheckForIEnumerable(type) == null)
                     Fields.Add(new EntitySolitaire(type));
-                else
-                    throw new Exception("Working on this case...");
+                //else
+                    //throw new Exception("Working on this case...");
                 //else
                 //    Fields.Add(new EntityClass(entitySpec.Begin(), enumerable, null));
             }
@@ -37,7 +37,7 @@ namespace factor10.Obj2Db
             Fields.AddRange(noSaveFields);
 
             // this is temporary - to be able to serialze a contract with "*" since it was digging up so much garbage...
-            // need to investigae each "garbage" occurrence and handle it more elegant
+            // need to investigae each "garbage" occurrence and handle it more elegantly
             Fields.RemoveAll(_ => _ is EntityPlainField && SqlStuff.Field2Sql(_.NameAndType, true) == null);
             Lists.RemoveAll(_ => !_.Fields.Any() && !_.Lists.Any());
 
@@ -52,13 +52,8 @@ namespace factor10.Obj2Db
                 Fields[i].ResultSetIndex = i;
 
             var fieldsThenFormulas = Fields.Where(_ => !(_ is EntityAggregation)).ToList();
-            Func<Entity, int> q = w =>
-            {
-                if (w is EntityFormula)
-                    return -1;
-                return 1;
-            };
-            fieldsThenFormulas.Sort((x, y) => q(y) - q(x));
+            Func<Entity, int> typeComparer = _ => _ is EntityFormula ? -1 : 1;
+            fieldsThenFormulas.Sort((x, y) => typeComparer(y) - typeComparer(x));
             _fieldsThenFormulas = fieldsThenFormulas.ToArray();
         }
 
@@ -145,6 +140,27 @@ namespace factor10.Obj2Db
         {
             foreach (var entity in _fieldsThenFormulas)
                 entity.AssignValue(result, obj);
+        }
+
+        public void AggregationBegin(object[] result)
+        {
+            foreach (var p in AggregationMapper)
+                result[p.Item2] = 0.0;
+        }
+
+        public void AggregationUpdate(object[] result, object[] subResult)
+        {
+            foreach (var p in AggregationMapper)
+            {
+                var r = (result[p.Item2] as IConvertible)?.ToDouble(null) ?? 0;
+                result[p.Item2] = r + (subResult[p.Item1] as IConvertible)?.ToDouble(null) ?? 0;
+            }
+        }
+
+        public void AggregationEnd(object[] result)
+        {
+            foreach (var p in AggregationMapper)
+                result[p.Item2] = Fields[p.Item1].FieldInfo.CoherseType(result[p.Item2]);
         }
 
     }

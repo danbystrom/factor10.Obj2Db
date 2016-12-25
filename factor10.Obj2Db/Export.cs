@@ -38,15 +38,17 @@ namespace factor10.Obj2Db
             var rowResult = new object[ewt.Entity.Fields.Count];
             foreach (var aggregator in ewt.GetSubEntitities(rowResult))
             {
-                var enumerable = aggregator.EntityWithTable.Entity.GetIEnumerable(obj);
+                var enumerable = aggregator.Entity.GetIEnumerable(obj);
                 if (enumerable == null)
                     continue;
-                if (aggregator.HasAggragation)
+                if (aggregator.Entity.AggregationMapper.Any())
+                {
                     foreach (var itm in enumerable)
-                        aggregator.UpdateWith(rowResult, run(aggregator.EntityWithTable, itm, pk));
+                        aggregator.Entity.AggregationUpdate(rowResult, run(aggregator, itm, pk));
+                }
                 else
                     foreach (var itm in enumerable)
-                        run(aggregator.EntityWithTable, itm, pk);
+                        run(aggregator, itm, pk);
             }
             ewt.Entity.AssignValue(rowResult, obj);
             if (ewt.Entity.PassesFilter(rowResult))

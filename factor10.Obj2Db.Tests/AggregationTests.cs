@@ -21,9 +21,9 @@ namespace factor10.Obj2Db.Tests
                 .Add("AggregatedX").Aggregates("Structs.X")
                 .Add(entitySpec.Begin("Structs").NotSaved()
                     .Add("X"))
-                .Add(entitySpec.Begin("SelfList")
+                .Add(entitySpec.Begin("Self.SelfList")
                     .Add("Double"))
-                .Add("AggregatedDouble").Aggregates("SelfList.Double")
+                .Add("AggregatedDouble").Aggregates("Self.SelfList.Double")
                 ;
 
             var theTop = new TheTop
@@ -42,13 +42,13 @@ namespace factor10.Obj2Db.Tests
             _tables = export.TableManager.GetWithAllData();
 
             _topTable = _tables.Single(_ => _.Name == "TheTop");
-            _selfListTable = _tables.Single(_ => _.Name == "SelfList");
+            _selfListTable = _tables.Single(_ => _.Name == "SelfSelfList");
         }
 
         [Test]
         public void TestThatTheTablesAreCorrect()
         {
-            CollectionAssert.AreEqual(new[] { "TheTop","SelfList" }, _tables.Select(_ => _.Name));
+            CollectionAssert.AreEqual(new[] {"TheTop", "SelfSelfList"}, _tables.Select(_ => _.Name));
         }
 
         [Test]
@@ -69,6 +69,7 @@ namespace factor10.Obj2Db.Tests
             Assert.AreEqual("Int32", _topTable.Rows.Single().Columns[1].GetType().Name);
         }
 
+        [Test]
         public void TestThatDoubleAggregatedCorrectly()
         {
             Assert.AreEqual(42 + 43, _topTable.Rows.Single().Columns[2]);
@@ -78,6 +79,58 @@ namespace factor10.Obj2Db.Tests
         public void TestThatDoubleAggregatedTypeIsCorrect()
         {
             Assert.AreEqual("Double", _topTable.Rows.Single().Columns[2].GetType().Name);
+        }
+
+    }
+
+    public class Aggregation2Tests
+    {
+        private List<ITable> _tables;
+        private ITable _topTable;
+
+        [OneTimeSetUp]
+        public void Test()
+        {
+            var spec = entitySpec.Begin()
+                .Add(entitySpec.Begin("SelfList").NotSaved()
+                    .Add("Double"))
+                .Add("AggregatedDouble").Aggregates("SelfList.Double")
+                ;
+
+            var theTop = new TheTop
+            {
+                SelfList = new List<TheTop> {new TheTop {Double = 42}, new TheTop {Double = 43}}
+            };
+            var t = new InMemoryTableManager();
+            var export = new Export<TheTop>(spec, t);
+            export.Run(theTop);
+            _tables = export.TableManager.GetWithAllData();
+
+            _topTable = _tables.Single(_ => _.Name == "TheTop");
+        }
+
+        [Test]
+        public void TestThatTheTablesAreCorrect()
+        {
+            CollectionAssert.AreEqual(new[] { "TheTop" }, _tables.Select(_ => _.Name));
+        }
+
+        [Test]
+        public void TestThatAllFieldsAreInToTable()
+        {
+            CollectionAssert.AreEqual(new[] { "AggregatedDouble" }, _topTable.Fields.Select(_ => _.Name));
+        }
+
+        [Test]
+        public void TestThatDoubleAggregatedCorrectly()
+        {
+            Assert.AreEqual(42 + 43, _topTable.Rows.Single().Columns.Single());
+        }
+
+        [Test]
+        public void TestThatDoubleAggregatedTypeIsCorrect()
+        {
+            Assert.AreEqual("Double", _topTable.Rows.Single().Columns.Single().GetType().Name);
         }
 
     }
