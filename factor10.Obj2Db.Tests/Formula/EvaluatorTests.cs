@@ -156,8 +156,8 @@ namespace factor10.Obj2Db.Tests.Formula
             var rpn = new Rpn("Url==42");
             Assert.AreEqual("Url 42 ==", rpn.ToString());
 
-            var eval = new EvaluateRpn(rpn, new List<Tuple<string, Type>>
-            {Tuple.Create("Url", typeof (double))});
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>
+            {new NameAndType("Url", typeof (double))});
             var value = eval.Eval(new object[] { variableValue });
             Assert.AreEqual(expected, value.Numeric);
         }
@@ -169,8 +169,8 @@ namespace factor10.Obj2Db.Tests.Formula
             var rpn = new Rpn("Url!='www'");
             Assert.AreEqual("Url \"www\" !=", rpn.ToString());
 
-            var eval = new EvaluateRpn(rpn, new List<Tuple<string, Type>>
-            {Tuple.Create("Url", typeof (string))});
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>
+            {new NameAndType("Url", typeof (string))});
             var value = eval.Eval(new object[] { variableValue });
             Assert.AreEqual(expected, value.Numeric);
         }
@@ -180,8 +180,8 @@ namespace factor10.Obj2Db.Tests.Formula
         {
             var rpn = new Rpn("3+(a+q)/(2+2)+3");
             Assert.AreEqual("3 a q + 2 2 + / + 3 +", rpn.ToString());
-            var eval = new EvaluateRpn(rpn, new List<Tuple<string, Type>>
-            {Tuple.Create("a", typeof (double)), Tuple.Create("q", typeof (double))});
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>
+            {new NameAndType("a", typeof (double)), new NameAndType("q", typeof (double))});
             var variables = new object[] {3.0, 5.0};
             var value = eval.Eval(variables);
             Assert.AreEqual(8, value.Numeric);
@@ -196,8 +196,8 @@ namespace factor10.Obj2Db.Tests.Formula
             var rpn = new Rpn("var1??var2");
             Assert.AreEqual("var1 var2 ??", rpn.ToString());
 
-            var eval = new EvaluateRpn(rpn, new List<Tuple<string, Type>>
-            {Tuple.Create("var1", typeof (string)),Tuple.Create("var2", typeof (string))});
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>
+            {new NameAndType("var1", typeof (string)),new NameAndType("var2", typeof (string))});
             var value = eval.Eval(new object[] { var1, var2 });
             Assert.AreEqual(expected, value.String);
         }

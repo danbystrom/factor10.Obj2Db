@@ -7,10 +7,10 @@ namespace factor10.Obj2Db
     public sealed class ConcurrentEntityTableDictionary
     {
         private readonly ConcurrentDictionary<int, EntityWithTable> _dic = new ConcurrentDictionary<int, EntityWithTable>();
-        private readonly Entity _template;
+        private readonly EntityClass _template;
         private readonly ITableManager _tableManager;
 
-        public ConcurrentEntityTableDictionary(ITableManager tableManager, Entity template)
+        public ConcurrentEntityTableDictionary(ITableManager tableManager, EntityClass template)
         {
             _tableManager = tableManager;
             _template = template;
@@ -30,7 +30,7 @@ namespace factor10.Obj2Db
 
         public List<ITable> AllTableFragments()
         {
-            return _dic.Values.SelectMany(_ => _.Lists.Select(x => x.Table)).ToList();
+            return _dic.Values.SelectMany(_ => _.Lists.Select(x => x.EntityWithTable.Table)).ToList();
         } 
 
     }

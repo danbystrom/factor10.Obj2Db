@@ -160,7 +160,7 @@ namespace factor10.Obj2Db.Tests.Formula
         //    var rpn = new Rpn("Url!='www'");
         //    Assert.AreEqual("Url \"www\" !=", rpn.ToString());
 
-        //    var eval = new EvaluateRpn(rpn, new List<Tuple<string, Type>>
+        //    var eval = new EvaluateRpn(rpn, new List<NameAndType>
         //    {Tuple.Create("Url", typeof (string))});
         //    var value = eval.Eval(new object[] { variableValue });
         //    Assert.AreEqual(expected, value);

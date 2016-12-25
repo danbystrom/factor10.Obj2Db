@@ -12,7 +12,7 @@ namespace factor10.Obj2Db.Formula
 
         public EvaluateRpn(
             Rpn rpn,
-            List<Tuple<string, Type>> entityFields = null)
+            List<NameAndType> entityFields = null)
         {
             _original = rpn.Result.ToList();
 
@@ -64,10 +64,10 @@ namespace factor10.Obj2Db.Formula
                     var itm = _original[i] as RpnItemOperandVariable;
                     if (itm == null)
                         continue;
-                    var x = entityFields.FindIndex(_ => _.Item1 == itm.Name);
+                    var x = entityFields.FindIndex(_ => _.Name == itm.Name);
                     if (x < 0)
                         throw new ArgumentException($"Unknown varable '{itm.Name}'");
-                    if (entityFields[x].Item2 == typeof(string))
+                    if (entityFields[x].Type == typeof(string))
                         _original[i] = new RpnItemOperandString2(() => _variables[x]?.ToString());
                     else
                         _original[i] = new RpnItemOperandNumeric2(() => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0);

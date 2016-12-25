@@ -8,12 +8,12 @@ namespace factor10.Obj2Db
 
     public sealed class Export<T>
     {
-        public readonly Entity Entity;
+        public readonly EntityClass TopEntity;
         public readonly ITableManager TableManager;
 
         public Export(entitySpec entitySpec, ITableManager tableManager = null)
         {
-            Entity = Entity.Create(typeof (T), entitySpec);
+            TopEntity = Entity.Create(typeof (T), entitySpec);
             TableManager = tableManager ?? new InMemoryTableManager();
         }
 
@@ -24,7 +24,7 @@ namespace factor10.Obj2Db
 
         public void Run(IEnumerable<T> objs)
         {
-            var ed = new ConcurrentEntityTableDictionary(TableManager, Entity);
+            var ed = new ConcurrentEntityTableDictionary(TableManager, TopEntity);
             objs.AsParallel().ForAll(_ =>
             {
                 run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty);
@@ -32,69 +32,26 @@ namespace factor10.Obj2Db
             TableManager.Flush();
         }
 
-        private object[] run(EntityWithTable entity, object obj, Guid parentRowId)
+        private object[] run(EntityWithTable ewt, object obj, Guid parentRowId)
         {
             var pk = Guid.NewGuid();
-            var rowResult = entity.Entity.GetRow(obj);
-            foreach (var aggregator in getSubEntitities(entity, rowResult))
+            var rowResult = ewt.Entity.GetRow(obj);
+            foreach (var aggregator in ewt.GetSubEntitities(rowResult))
             {
-                var subEntity = aggregator.EntityWithTable;
-                var enumerable = subEntity.Entity.GetIEnumerable(obj);
+                var enumerable = aggregator.EntityWithTable.Entity.GetIEnumerable(obj);
                 if (enumerable == null)
                     continue;
                 var hasAggregation = aggregator.AggregationMapper.Count != 0;
                 foreach (var itm in enumerable)
                 {
-                    var subResult = run(subEntity, itm, pk);
+                    var subResult = run(aggregator.EntityWithTable, itm, pk);
                     if (hasAggregation)
-                        aggregator.UpdateWith(subResult);
+                        aggregator.UpdateWith(rowResult, subResult);
                 }
             }
-            if (entity.Entity.PassesFilter(rowResult))
-                entity.Table?.AddRow(pk, parentRowId, rowResult);
+            if (ewt.Entity.PassesFilter(rowResult))
+                ewt.Table?.AddRow(pk, parentRowId, rowResult);
             return rowResult;
-        }
-
-        private IEnumerable<Aggregator> getSubEntitities(EntityWithTable entity, object[] result)
-        {
-            foreach (var list in entity.Lists)
-            {
-                var aggragator = new Aggregator(list, result);
-                yield return aggragator;
-                aggragator.CoherseAggregatedValues();
-            }
-        }
-
-    }
-
-    public sealed class Aggregator
-    {
-        public object[] Result;
-        public EntityWithTable EntityWithTable;
-        public List<Tuple<int, int>> AggregationMapper;
-         
-        public Aggregator(EntityWithTable entityWithTable, object[] result)
-        {
-            EntityWithTable = entityWithTable;
-            Result = result;
-            AggregationMapper = EntityWithTable.Entity.AggregationMapper;
-            foreach (var p in AggregationMapper)
-                Result[p.Item2] = 0.0;
-        }
-
-        public void UpdateWith(object[] subResult)
-        {
-            foreach (var p in AggregationMapper)
-            {
-                var r = (Result[p.Item2] as IConvertible)?.ToDouble(null) ?? 0;
-                Result[p.Item2] = r + (subResult[p.Item1] as IConvertible)?.ToDouble(null) ?? 0;
-            }
-        }
-
-        public void CoherseAggregatedValues()
-        {
-            foreach (var p in AggregationMapper)
-                Result[p.Item2] = EntityWithTable.Entity.Fields[p.Item1].FieldInfo.CoherseType(Result[p.Item2]);
         }
 
     }

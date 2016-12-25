@@ -54,6 +54,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EntityAggregation.cs" />
+    <Compile Include="EntityClass.cs" />
+    <Compile Include="EntityFormula.cs" />
+    <Compile Include="EntityPlainField.cs" />
     <Compile Include="entitySpec.cs" />
     <Compile Include="EntityWithTable.cs" />
     <Compile Include="Formula\ExperimentalCompileRpn.cs" />
