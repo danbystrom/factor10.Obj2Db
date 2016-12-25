@@ -3,8 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Runtime.InteropServices;
-using Utils;
 
 namespace factor10.Obj2Db
 {

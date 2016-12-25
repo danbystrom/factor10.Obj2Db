@@ -30,7 +30,7 @@ namespace factor10.Obj2Db
 
         public List<ITable> AllTableFragments()
         {
-            return _dic.Values.SelectMany(_ => _.Lists.Select(x => x.EntityWithTable.Table)).ToList();
+            return _dic.Values.SelectMany(_ => _.Aggregators.Select(x => x.EntityWithTable.Table)).ToList();
         } 
 
     }

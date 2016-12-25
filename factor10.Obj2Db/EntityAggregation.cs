@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace factor10.Obj2Db
 {
@@ -11,10 +8,9 @@ namespace factor10.Obj2Db
         public EntityAggregation(entitySpec entitySpec)
             : base(entitySpec)
         {
-            TypeOfEntity = TypeOfEntity.Aggregation;
         }
 
-        public override void ParentCompleted(Entity parent, int index)
+        public override void ParentInitialized(Entity parent, int index)
         {
             var agg = Spec.aggregation;
             var subEntity = parent.Lists.FirstOrDefault(_ => agg.StartsWith(_.Name + "."));

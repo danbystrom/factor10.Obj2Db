@@ -6,9 +6,10 @@ using factor10.Obj2Db.Formula;
 
 namespace factor10.Obj2Db
 {
-    public class EntityClass : Entity
+    public sealed class EntityClass : Entity
     {
-        public EvaluateRpn _evaluator;
+        private readonly EvaluateRpn _evaluator;
+        private readonly Entity[] _fieldsThenFormulas;
 
         public EntityClass(entitySpec entitySpec, Type type, LinkedFieldInfo fieldInfo)
             : base(entitySpec)
@@ -18,7 +19,7 @@ namespace factor10.Obj2Db
 
             if (Spec.fields == null || !Spec.fields.Any() ||
                 (Spec.fields.First().name == "*" && !LinkedFieldInfo.GetAllFieldsAndProperties(type).Any()))
-                Fields.Add(new Entity(null, LinkedFieldInfo.Null(type)));
+                Fields.Add(new EntitySolitaire(type));
 
             breakDownSubEntities(type);
 
@@ -28,22 +29,32 @@ namespace factor10.Obj2Db
             SaveableFieldCount = Fields.Count;
             Fields.AddRange(noSaveFields);
 
+            // this was to be able to serialze a contract, since "*" was digging up so much garbage...
+            Fields.RemoveAll(_ =>
+                _ is EntityPlainField && SqlStuff.Field2Sql(new NameAndType(null, _.FieldType), true) == null);
+            Lists.RemoveAll(_ => !_.Fields.Any() && !_.Lists.Any());
+
             // now it's time to connect the aggregated fields
             for (var fi = 0; fi < Fields.Count; fi++)
-                Fields[fi].ParentCompleted(this, fi);
+                Fields[fi].ParentInitialized(this, fi);
 
             if ( !string.IsNullOrEmpty(Spec.where))
                 _evaluator = new EvaluateRpn(new Rpn(Spec.where), Fields.Select(_ => _.NameAndType).ToList());
 
-            // this was to be able to serialze a contract, since "*" was digging up so much garbage...
-            Fields.RemoveAll(_ =>
-                _.TypeOfEntity == TypeOfEntity.PlainField && SqlStuff.Field2Sql(new NameAndType(null, _.FieldType), true) == null);
-            Lists.RemoveAll(_ => !_.Fields.Any() && !_.Lists.Any());
-
             for (var i = 0; i < Fields.Count; i++)
                 Fields[i].ResultSetIndex = i;
-            _plainFields = Fields.Where(_ => _.TypeOfEntity == TypeOfEntity.PlainField).ToArray();
-            _formulaFields = Fields.Where(_ => _.TypeOfEntity == TypeOfEntity.Formula).ToArray();
+
+            var fieldsThenFormulas = Fields.Where(_ => !(_ is EntityAggregation)).ToList();
+            Func<Entity, int> q = w =>
+            {
+                if (w is EntityFormula)
+                    return -1;
+                if (w is EntityPlainField)
+                    return 1;
+                return 0;
+            };
+            fieldsThenFormulas.Sort((x, y) => q(y) - q(x));
+            _fieldsThenFormulas = fieldsThenFormulas.ToArray();
         }
 
         private void breakDownSubEntities(Type type)
@@ -118,6 +129,14 @@ namespace factor10.Obj2Db
         public IEnumerable GetIEnumerable(object obj)
         {
             return (IEnumerable)FieldInfo.GetValue(obj);
+        }
+
+        public object[] GetRow(object obj)
+        {
+            var result = new object[Fields.Count];
+            foreach (var entity in _fieldsThenFormulas)
+                entity.AssignValue(result, obj);
+            return result;
         }
 
 

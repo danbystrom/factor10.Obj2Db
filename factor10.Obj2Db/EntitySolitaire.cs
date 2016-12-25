@@ -1,11 +1,13 @@
-﻿namespace factor10.Obj2Db
+﻿using System;
+
+namespace factor10.Obj2Db
 {
-    public class EntityPlainField : Entity
+    public class EntitySolitaire : Entity
     {
-        public EntityPlainField(entitySpec entitySpec, LinkedFieldInfo linkedFieldInfo)
-            : base(entitySpec)
+        public EntitySolitaire(Type type)
+            :base(entitySpec.Begin(type.Name))
         {
-            FieldInfo = linkedFieldInfo;
+            FieldInfo = LinkedFieldInfo.Null(type);
             FieldType = FieldInfo.FieldType;
         }
 

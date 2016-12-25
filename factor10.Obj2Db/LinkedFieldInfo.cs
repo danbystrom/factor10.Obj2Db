@@ -25,7 +25,7 @@ namespace factor10.Obj2Db
         private readonly FieldInfo _fieldInfo;
         private readonly PropertyInfo _propertyInfo;
         public readonly LinkedFieldInfo Next;
-        public readonly Type IEnumerable;
+        public readonly Type Enumerable;
 
         public Type FieldType { get; private set; }
 
@@ -51,7 +51,7 @@ namespace factor10.Obj2Db
             while (x.Next != null)
                 x = x.Next;
             FieldType = x._fieldInfo?.FieldType ?? x._propertyInfo.PropertyType;
-            IEnumerable = CheckForIEnumerable(FieldType);
+            Enumerable = CheckForIEnumerable(FieldType);
             _cohersions.TryGetValue(StripNullable(FieldType).Name, out _coherse);
 
             if (_propertyInfo != null)

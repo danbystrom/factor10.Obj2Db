@@ -41,7 +41,7 @@ namespace factor10.Obj2Db
                 var enumerable = aggregator.EntityWithTable.Entity.GetIEnumerable(obj);
                 if (enumerable == null)
                     continue;
-                var hasAggregation = aggregator.AggregationMapper.Count != 0;
+                var hasAggregation = aggregator.HasAggragation;
                 foreach (var itm in enumerable)
                 {
                     var subResult = run(aggregator.EntityWithTable, itm, pk);

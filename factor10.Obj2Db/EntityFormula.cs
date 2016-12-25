@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using factor10.Obj2Db.Formula;
 
 namespace factor10.Obj2Db
@@ -12,15 +10,17 @@ namespace factor10.Obj2Db
         public EntityFormula(entitySpec entitySpec)
             : base(entitySpec)
         {
-            TypeOfEntity = TypeOfEntity.Formula;
         }
 
         public override void AssignValue(object[] result, object obj)
         {
-            result[ResultSetIndex] = _evaluator.Eval(result).Numeric;
+            var itm = _evaluator.Eval(result);
+            result[ResultSetIndex] = FieldType == typeof(double)
+                ? (object) itm.Numeric
+                : itm.String;
         }
 
-        public override void ParentCompleted(Entity parent, int index)
+        public override void ParentInitialized(Entity parent, int index)
         {
             _evaluator = new EvaluateRpn(new Rpn(Spec.formula), parent.Fields.Select(_ => _.NameAndType).ToList());
             FieldType = _evaluator.TypeEval() is RpnItemOperandNumeric
