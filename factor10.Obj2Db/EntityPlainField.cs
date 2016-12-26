@@ -1,11 +1,15 @@
-﻿namespace factor10.Obj2Db
+﻿using System;
+
+namespace factor10.Obj2Db
 {
     public class EntityPlainField : Entity
     {
-        public EntityPlainField(entitySpec entitySpec, LinkedFieldInfo linkedFieldInfo)
+        public EntityPlainField(entitySpec entitySpec, LinkedFieldInfo fieldInfo, Action<string> log)
             : base(entitySpec)
         {
-            FieldInfo = linkedFieldInfo;
+            log?.Invoke($"EntityPlainField ctor: {entitySpec.name}/{entitySpec.fields?.Count ?? 0} - {fieldInfo.FieldType} ");
+
+            FieldInfo = fieldInfo;
             FieldType = FieldInfo.FieldType;
         }
 

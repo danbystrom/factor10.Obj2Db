@@ -11,9 +11,9 @@ namespace factor10.Obj2Db
         public readonly EntityClass TopEntity;
         public readonly ITableManager TableManager;
 
-        public Export(entitySpec entitySpec, ITableManager tableManager = null)
+        public Export(entitySpec entitySpec, ITableManager tableManager = null, Action<string> log = null)
         {
-            TopEntity = Entity.Create(typeof(T), entitySpec);
+            TopEntity = Entity.Create(entitySpec, typeof(T), log);
             TableManager = tableManager ?? new InMemoryTableManager();
         }
 
@@ -36,19 +36,21 @@ namespace factor10.Obj2Db
         {
             var pk = Guid.NewGuid();
             var rowResult = new object[ewt.Entity.Fields.Count];
-            foreach (var aggregator in ewt.GetSubEntitities(rowResult))
+            foreach (var subEwt in ewt.Lists)
             {
-                var enumerable = aggregator.Entity.GetIEnumerable(obj);
+                var enumerable = subEwt.Entity.GetIEnumerable(obj);
                 if (enumerable == null)
                     continue;
-                if (aggregator.Entity.AggregationMapper.Any())
+                if (subEwt.HasAggregation)
                 {
+                    subEwt.Entity.AggregationBegin(rowResult);
                     foreach (var itm in enumerable)
-                        aggregator.Entity.AggregationUpdate(rowResult, run(aggregator, itm, pk));
+                        subEwt.Entity.AggregationUpdate(rowResult, run(subEwt, itm, pk));
+                    subEwt.Entity.AggregationEnd(rowResult);
                 }
                 else
                     foreach (var itm in enumerable)
-                        run(aggregator, itm, pk);
+                        run(subEwt, itm, pk);
             }
             ewt.Entity.AssignValue(rowResult, obj);
             if (ewt.Entity.PassesFilter(rowResult))

@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using factor10.Obj2Db.Tests.TestDataStructures;
 using NUnit.Framework;
 
@@ -57,6 +59,52 @@ namespace factor10.Obj2Db.Tests
             var tables = export.TableManager.GetWithAllData().ToDictionary(_ => _.Name, _ => _.Rows);
             tables.Remove("ClassToTestEnumerables");
             Assert.IsTrue(tables.Values.All(_ => _.Count == 2));
+        }
+
+    }
+
+    [TestFixture]
+    public class TestListOfListInts
+    {
+        private Dictionary<string, ITable> _tables;
+
+        [OneTimeSetUp]
+        public void TestThatAggregatedValuesCanBeUsedInFormulas()
+        {
+            var spec = entitySpec.Begin(null, "ontop")
+                //.Add("SumList3").Aggregates("List3.").NotSaved()
+                .Add(entitySpec.Begin("List3")
+                    .Add(entitySpec.Begin("", "innerlist")
+                        .Add("|zvalue")));
+            var x = new Nisse
+            {
+                List3 = new List<List<int>> { new List<int> { 15 }, new List<int> { 15, 16, 17 }, new List<int> { 18 } }
+            };
+
+            var sb = new StringBuilder();
+            Action<string> log = _ => sb.AppendLine(_);
+            var export = new Export<Nisse>(spec, null, log);
+            export.Run(x);
+
+            _tables = export.TableManager.GetWithAllData().ToDictionary(_ => _.Name, _ => _);
+        }
+
+        [Test]
+        public void TestThatTableNamesAreCorrect()
+        {
+            CollectionAssert.AreEquivalent(new[] { "ontop", "List3", "innerlist" }, _tables.Keys);
+        }
+
+        [Test]
+        public void TestThatListRowsAreCorrectlyDistributed()
+        {
+            var x = _tables["innerlist"].Rows.ToLookup(_ => _.ParentRow, _ => _.Columns.Single());
+            CollectionAssert.AreEquivalent(new[]
+            {
+                new[] {15},
+                new[] {15, 16, 17},
+                new[] {18}
+            }, x);
         }
 
     }

@@ -11,24 +11,21 @@ namespace factor10.Obj2Db
         private readonly EvaluateRpn _whereClause;
         private readonly Entity[] _fieldsThenFormulas;
 
-        public EntityClass(entitySpec entitySpec, Type type, LinkedFieldInfo fieldInfo)
+        public EntityClass(entitySpec entitySpec, Type type, LinkedFieldInfo fieldInfo, Action<string> log)
             : base(entitySpec)
         {
+            log?.Invoke($"EntityClass ctor: {entitySpec.name}/{entitySpec.fields?.Count ?? 0} - {type?.Name} - {fieldInfo?.FieldType} - {fieldInfo?.IEnumerable?.Name}");
+
             FieldInfo = fieldInfo;
             FieldType = fieldInfo?.FieldType;
 
             if (!Spec.Any() || isStarExpansionAndNoRealSubProperties(type))
             {
-                var enumerable = LinkedFieldInfo.CheckForIEnumerable(type);
-                //if (LinkedFieldInfo.CheckForIEnumerable(type) == null)
-                    Fields.Add(new EntitySolitaire(type));
-                //else
-                    //throw new Exception("Working on this case...");
-                //else
-                //    Fields.Add(new EntityClass(entitySpec.Begin(), enumerable, null));
+                // not sure if this should be allowed...
+                Fields.Add(new EntitySolitaire(type));
             }
 
-            breakDownSubEntities(type);
+            breakDownSubEntities(type, log);
 
             // move the nosave fields to always be at the end of the list - this feature is not completed and has no tests
             var noSaveFields = Fields.Where(_ => _.NoSave).ToList();
@@ -57,14 +54,14 @@ namespace factor10.Obj2Db
             _fieldsThenFormulas = fieldsThenFormulas.ToArray();
         }
 
-        private void breakDownSubEntities(Type type)
+        private void breakDownSubEntities(Type type, Action<string> log)
         {
             if (Spec.fields == null)
                 return;
             foreach (var subEntitySpec in Spec.fields)
             {
                 subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
-                foreach (var subEntity in expansionOverStar(type, subEntitySpec, new HashSet<Type>()))
+                foreach (var subEntity in expansionOverStar(log, type, subEntitySpec, new HashSet<Type>()))
                     if(subEntity is EntityClass)
                         Lists.Add((EntityClass)subEntity);
                     else
@@ -78,6 +75,7 @@ namespace factor10.Obj2Db
         }
 
         private static IEnumerable<Entity> expansionOverStar(
+            Action<string> log,
             Type masterType,
             entitySpec subEntitySpec,
             HashSet<Type> haltRecursion,
@@ -86,7 +84,7 @@ namespace factor10.Obj2Db
         {
             if (subEntitySpec.name != "*")
             {
-                yield return create(masterType, subEntitySpec);
+                yield return create(subEntitySpec, masterType, log);
                 yield break;
             }
 
@@ -105,10 +103,10 @@ namespace factor10.Obj2Db
                 if (LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type) != null)
                 {
                     spec.Add("*");
-                    yield return create(masterType, spec);
+                    yield return create(spec, masterType, log);
                 }
                 else if (!subProperties.Any())
-                    yield return create(masterType, spec);
+                    yield return create(spec, masterType, log);
 
                 foreach (var liftedSubProperty in subProperties)
                 {
@@ -116,10 +114,10 @@ namespace factor10.Obj2Db
                         continue;
                     var propName = $"{prefix}{nameAndType.Name}.{liftedSubProperty.Name}";
                     if (LinkedFieldInfo.GetAllFieldsAndProperties(liftedSubProperty.Type).Any())
-                        foreach (var q in expansionOverStar(masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
+                        foreach (var q in expansionOverStar(log, masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
                             yield return q;
                     else
-                        yield return create(masterType, propName);
+                        yield return create(propName, masterType, log);
                 }
             }
 

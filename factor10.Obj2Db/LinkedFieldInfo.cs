@@ -32,40 +32,42 @@ namespace factor10.Obj2Db
         private readonly Func<IConvertible, object> _coherse;
 
         private readonly Func<object, object> _getValue;
-         
+
         public LinkedFieldInfo(Type type, string name)
         {
-            if (name == ".")
+            if (name == "")
             {
                 // auto-referencing
                 FieldType = type;
                 _getValue = _ => _;
-                return;
+            }
+            else
+            {
+                var split = name.Split(".".ToCharArray(), 2);
+                _fieldInfo = type.GetField(split[0], BindingFlags.Public | BindingFlags.Instance);
+                if (_fieldInfo == null)
+                {
+                    _propertyInfo = type.GetProperty(split[0], BindingFlags.Public | BindingFlags.Instance);
+                    if (_propertyInfo == null)
+                        throw new ArgumentException($"Field or property '{name}' not found in type '{type.Name}'");
+                    if (split.Length > 1)
+                        Next = new LinkedFieldInfo(_propertyInfo.PropertyType, split[1]);
+                }
+                else if (split.Length > 1)
+                    Next = new LinkedFieldInfo(_fieldInfo.FieldType, split[1]);
+                var x = this;
+                while (x.Next != null)
+                    x = x.Next;
+                FieldType = x._fieldInfo?.FieldType ?? x._propertyInfo.PropertyType;
+
+                if (_propertyInfo != null)
+                    _getValue = generateFastPropertyFetcher(type, _propertyInfo);
+                else if (_fieldInfo != null)
+                    _getValue = generateFastFieldFetcher(type, _fieldInfo);
             }
 
-            var split = name.Split(".".ToCharArray(), 2);
-            _fieldInfo = type.GetField(split[0], BindingFlags.Public | BindingFlags.Instance);
-            if (_fieldInfo == null)
-            {
-                _propertyInfo = type.GetProperty(split[0], BindingFlags.Public | BindingFlags.Instance);
-                if (_propertyInfo == null)
-                    throw new ArgumentException($"Field or property '{name}' not found in type '{type.Name}'");
-                if (split.Length > 1)
-                    Next = new LinkedFieldInfo(_propertyInfo.PropertyType, split[1]);
-            }
-            else if (split.Length > 1)
-                Next = new LinkedFieldInfo(_fieldInfo.FieldType, split[1]);
-            var x = this;
-            while (x.Next != null)
-                x = x.Next;
-            FieldType = x._fieldInfo?.FieldType ?? x._propertyInfo.PropertyType;
             IEnumerable = CheckForIEnumerable(FieldType);
             _cohersions.TryGetValue(StripNullable(FieldType).Name, out _coherse);
-
-            if (_propertyInfo != null)
-                _getValue = generateFastPropertyFetcher(type, _propertyInfo);
-            else if (_fieldInfo != null)
-                _getValue = generateFastFieldFetcher(type, _fieldInfo);
         }
 
         public static Type StripNullable(Type type)
@@ -133,7 +135,7 @@ namespace factor10.Obj2Db
 
         public static LinkedFieldInfo Null(Type type)
         {
-            return new LinkedFieldInfo(type, ".");
+            return new LinkedFieldInfo(type, "");
         }
 
         public object GetValueSlower(object obj)

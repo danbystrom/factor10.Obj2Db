@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
 using factor10.Obj2Db.Tests.TestData;
 using factor10.Obj2Db.Tests.TestDataStructures;
 using NUnit.Framework;
@@ -9,7 +12,7 @@ namespace factor10.Obj2Db.Tests
     [TestFixture]
     public class AggregationTests
     {
-        private List<ITable> _tables; 
+        private List<ITable> _tables;
         private ITable _topTable;
         private ITable _selfListTable;
 
@@ -17,13 +20,13 @@ namespace factor10.Obj2Db.Tests
         public void Test()
         {
             var spec = entitySpec.Begin()
-                .Add("FirstName")
-                .Add("AggregatedX").Aggregates("Structs.X")
-                .Add(entitySpec.Begin("Structs").NotSaved()
-                    .Add("X"))
-                .Add(entitySpec.Begin("Self.SelfList")
-                    .Add("Double"))
-                .Add("AggregatedDouble").Aggregates("Self.SelfList.Double")
+                    .Add("FirstName")
+                    .Add("AggregatedX").Aggregates("Structs.X")
+                    .Add(entitySpec.Begin("Structs").NotSaved()
+                        .Add("X"))
+                    .Add(entitySpec.Begin("Self.SelfList")
+                        .Add("Double"))
+                    .Add("AggregatedDouble").Aggregates("Self.SelfList.Double")
                 ;
 
             var theTop = new TheTop
@@ -60,7 +63,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatXAggregatedCorrectly()
         {
-            Assert.AreEqual(1 + 2 + 3 +4, _topTable.Rows.Single().Columns[1]);
+            Assert.AreEqual(1 + 2 + 3 + 4, _topTable.Rows.Single().Columns[1]);
         }
 
         [Test]
@@ -92,9 +95,9 @@ namespace factor10.Obj2Db.Tests
         public void Test()
         {
             var spec = entitySpec.Begin()
-                .Add(entitySpec.Begin("SelfList").NotSaved()
-                    .Add("Double"))
-                .Add("AggregatedDouble").Aggregates("SelfList.Double")
+                    .Add(entitySpec.Begin("SelfList").NotSaved()
+                        .Add("Double"))
+                    .Add("AggregatedDouble").Aggregates("SelfList.Double")
                 ;
 
             var theTop = new TheTop
@@ -112,13 +115,13 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatTheTablesAreCorrect()
         {
-            CollectionAssert.AreEqual(new[] { "TheTop" }, _tables.Select(_ => _.Name));
+            CollectionAssert.AreEqual(new[] {"TheTop"}, _tables.Select(_ => _.Name));
         }
 
         [Test]
         public void TestThatAllFieldsAreInToTable()
         {
-            CollectionAssert.AreEqual(new[] { "AggregatedDouble" }, _topTable.Fields.Select(_ => _.Name));
+            CollectionAssert.AreEqual(new[] {"AggregatedDouble"}, _topTable.Fields.Select(_ => _.Name));
         }
 
         [Test]
@@ -155,9 +158,9 @@ namespace factor10.Obj2Db.Tests
             var export = new Export<TestClassWithSneakyStuff>(spec);
             export.Run(x);
 
-            var t = export.TableManager.GetWithAllData().Single(_ => _.Name== "DictionariesAreSneaky");
+            var t = export.TableManager.GetWithAllData().Single(_ => _.Name == "DictionariesAreSneaky");
             CollectionAssert.AreEquivalent(new[] {100, 20}, t.Rows.Select(_ => _.Columns.Single()));
-        }   
+        }
 
     }
 
@@ -180,12 +183,14 @@ namespace factor10.Obj2Db.Tests
                 .Add("Average").Formula("(SumList1+SumList2)/2")
                 .Add("List1")
                 .Add("List2")
-                .Add("List3");
+                .Add(entitySpec.Begin("List3")
+                    .Add(entitySpec.Begin("", "q")
+                        .Add("|z")));
             var x = new Nisse
             {
                 List1 = new List<int> {5, 6, 7},
                 List2 = new List<int> {20},
-                List3 = new List<List<int>> {new List<int> {15}, new List<int> { 15,16,17 }, new List<int> { 18 } }
+                List3 = new List<List<int>> {new List<int> {15}, new List<int> {15, 16, 17}, new List<int> {18}}
             };
 
             var export = new Export<Nisse>(spec);
@@ -201,23 +206,92 @@ namespace factor10.Obj2Db.Tests
     [TestFixture]
     public class TestGurka2
     {
-        [Test]
+        private ITable _topTable;
+        private ITable _subTable;
+
+        [OneTimeSetUp]
         public void TestThatAggregatedValuesCanBeUsedInFormulas()
         {
-            var spec = entitySpec.Begin()
-                .Add(entitySpec.Begin("List3")
-                    ); //.Add("."));
+            var spec = entitySpec.Begin(null, "Tjo")
+                .Add("squash").Aggregates("List1.")
+                .Add(entitySpec.Begin("List1", "Hopp")
+                    .Add("|gurka"));
             var x = new Nisse
             {
-                List3 = new List<List<int>> { new List<int> { 15 }, new List<int> { 15, 16, 17 }, new List<int> { 18 } }
+                List1 = new List<int> {5, 6, 7},
             };
 
             var export = new Export<Nisse>(spec);
             export.Run(x);
 
-            var t = export.TableManager.GetWithAllData().First();
+            var tables = export.TableManager.GetWithAllData();
+            _topTable = tables.First();
+            _subTable = tables.Last();
+        }
 
-            CollectionAssert.AreEqual(new[] { 19 }, t.Rows.Single().Columns);
+        [Test]
+        public void TestThatTopTableHasCorrectName()
+        {
+            Assert.AreEqual("Tjo", _topTable.Name);
+        }
+
+        [Test]
+        public void TestThatSubTableHasCorrectName()
+        {
+            Assert.AreEqual("Hopp", _subTable.Name);
+        }
+
+        [Test]
+        public void TestThatTopTableHasCorrectColumnNames()
+        {
+            CollectionAssert.AreEqual(new[] {"squash"}, _topTable.Fields.Select(_ => _.Name));
+        }
+
+        [Test]
+        public void TestThatSubTableHasCorrectColumnNames()
+        {
+            CollectionAssert.AreEqual(new[] {"gurka"}, _subTable.Fields.Select(_ => _.Name));
+        }
+
+        [Test]
+        public void TestThatTopTableHasCorrectColumnValues()
+        {
+            CollectionAssert.AreEqual(new[] {5 + 6 + 7}, _topTable.Rows.Single().Columns);
+        }
+
+        [Test]
+        public void TestThatSubTableHasCorrectColumnValues()
+        {
+            CollectionAssert.AreEquivalent(new[] {5, 6, 7}, _subTable.Rows.Select(_ => _.Columns.Single()));
+        }
+
+    }
+
+    [TestFixture, Ignore("Working on this one")]
+    public class TestAggregationOfListOfListInts
+    {
+        private Dictionary<string, ITable> _tables;
+
+        [OneTimeSetUp]
+        public void TestThatAggregatedValuesCanBeUsedInFormulas()
+        {
+            var spec = entitySpec.Begin(null, "ontop")
+                .Add("zum").Aggregates("List3.zum").NotSaved()
+                .Add(entitySpec.Begin("List3")
+                    .Add("zum").Aggregates(".")
+                    .Add(entitySpec.Begin("", "innerlist")
+                        .Add("|zvalue")));
+            var x = new Nisse
+            {
+                List3 = new List<List<int>> {new List<int> {15}, new List<int> {15, 16, 17}, new List<int> {18}}
+            };
+
+            var sb = new StringBuilder();
+            Action<string> log = _ => sb.AppendLine(_);
+            var export = new Export<Nisse>(spec, null, log);
+            export.Run(x);
+
+            _tables = export.TableManager.GetWithAllData().ToDictionary(_ => _.Name, _ => _);
         }
 
     }

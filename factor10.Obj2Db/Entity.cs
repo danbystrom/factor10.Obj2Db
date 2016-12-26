@@ -34,7 +34,7 @@ namespace factor10.Obj2Db
             NoSave = entitySpec.nosave;
         }
 
-        public static EntityClass Create(Type type, entitySpec entitySpec)
+        public static EntityClass Create(entitySpec entitySpec, Type type, Action<string> log)
         {
             return new EntityClass(
                 new entitySpec
@@ -44,11 +44,14 @@ namespace factor10.Obj2Db
                     fields = entitySpec.fields
                 },
                 type,
-                null);
+                null,
+                log);
         }
 
-        protected static Entity create(Type type, entitySpec entitySpec)
+        protected static Entity create(entitySpec entitySpec, Type type, Action<string> log)
         {
+            log?.Invoke($"create: {type.Name} - {entitySpec.name}");
+
             if (!string.IsNullOrEmpty(entitySpec.aggregation))
                 return new EntityAggregation(entitySpec);
             if (!string.IsNullOrEmpty(entitySpec.formula))
@@ -56,9 +59,9 @@ namespace factor10.Obj2Db
 
             var fieldInfo = new LinkedFieldInfo(type, entitySpec.name);
             if (fieldInfo.IEnumerable != null)
-                return new EntityClass(entitySpec, fieldInfo.IEnumerable.GetGenericArguments()[0], fieldInfo);
+                return new EntityClass(entitySpec, fieldInfo.IEnumerable.GetGenericArguments()[0], fieldInfo, log);
             if (!entitySpec.Any())
-                return new EntityPlainField(entitySpec, fieldInfo);
+                return new EntityPlainField(entitySpec, fieldInfo, log);
 
             throw new Exception("Unknown error");
         }

@@ -9,7 +9,7 @@ namespace factor10.Obj2Db
         public readonly EntityClass Entity;
         public readonly ITable Table;
 
-        public readonly List<EntityWithTable> Aggregators = new List<EntityWithTable>();
+        public readonly List<EntityWithTable> Lists = new List<EntityWithTable>();
         public readonly bool HasAggregation;
 
         public EntityWithTable(EntityClass entity, ITableManager t, bool hasFk = false)
@@ -18,21 +18,8 @@ namespace factor10.Obj2Db
             if (!Entity.NoSave)
                 Table = t.New(entity, hasFk);
             foreach (var e in entity.Lists)
-                Aggregators.Add(new EntityWithTable(e, t, true));
+                Lists.Add(new EntityWithTable(e, t, true));
             HasAggregation = Entity.AggregationMapper.Any();
-        }
-
-        public IEnumerable<EntityWithTable> GetSubEntitities(object[] result)
-        {
-            foreach (var aggragator in Aggregators)
-                if (aggragator.HasAggregation)
-                {
-                    aggragator.Entity.AggregationBegin(result);
-                    yield return aggragator;
-                    aggragator.Entity.AggregationEnd(result);
-                }
-                else
-                    yield return aggragator;
         }
 
     }

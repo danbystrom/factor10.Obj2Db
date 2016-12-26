@@ -78,7 +78,12 @@ namespace factor10.Obj2Db
 
         public static implicit operator entitySpec(string name)
         {
-            return new entitySpec {name = name};
+            var split = name.Split('|');
+            return new entitySpec
+            {
+                name = split[0],
+                externalname = split.Length > 1 ? split[1] : null
+            };
         }
 
         public entitySpec(Entity entity)
