@@ -86,6 +86,8 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatATableCanBeGeneratedFromTheCreateString()
         {
+            if (Environment.MachineName != "DAN_FACTOR10")
+                return;
             var didReachItAllTheWay = false;
             SqlStuff.WithNewDb("SqlTests", conn =>
             {

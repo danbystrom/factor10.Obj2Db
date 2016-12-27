@@ -15,6 +15,18 @@ namespace factor10.Obj2Db
         {
             TopEntity = Entity.Create(entitySpec, typeof(T), log);
             TableManager = tableManager ?? new InMemoryTableManager();
+            //q(TopEntity);
+        }
+
+        private void q(EntityClass x)
+        {
+            foreach (var y in x.Lists)
+                q(y);
+            if (x.FieldInfo?.FieldType != x.FieldType)
+                throw new Exception();
+            foreach(var f in x.Fields)
+                if (f.FieldInfo?.FieldType != f.FieldType)
+                    throw new Exception();
         }
 
         public void Run(T obj)

@@ -69,6 +69,8 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void Save100SchoolsToDb()
         {
+            if (Environment.MachineName != "DAN_FACTOR10")
+                return;
             const int numberOfSchools = 100;
             var tableFactory = new SqlTableManager(SqlStuff.ConnectionString("SchoolTest"));
             var export = new Export<School>(_spec, tableFactory);

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using factor10.Obj2Db.Formula;
 
 namespace factor10.Obj2Db
@@ -7,9 +8,10 @@ namespace factor10.Obj2Db
     {
         protected EvaluateRpn Evaluator;
 
-        public EntityFormula(entitySpec entitySpec)
+        public EntityFormula(entitySpec entitySpec, Action<string> log)
             : base(entitySpec)
         {
+            log?.Invoke($"EntityFormula ctor: {entitySpec.name}/{entitySpec.fields?.Count ?? 0} - {entitySpec.formula} ");
         }
 
         public override void AssignValue(object[] result, object obj)

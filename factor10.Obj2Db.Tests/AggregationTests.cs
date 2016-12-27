@@ -267,7 +267,7 @@ namespace factor10.Obj2Db.Tests
 
     }
 
-    [TestFixture, Ignore("Working on this one")]
+    [TestFixture]
     public class TestAggregationOfListOfListInts
     {
         private Dictionary<string, ITable> _tables;
@@ -276,7 +276,7 @@ namespace factor10.Obj2Db.Tests
         public void TestThatAggregatedValuesCanBeUsedInFormulas()
         {
             var spec = entitySpec.Begin(null, "ontop")
-                .Add("zum").Aggregates("List3.zum").NotSaved()
+                .Add("bigzum").Aggregates("List3.zum")
                 .Add(entitySpec.Begin("List3")
                     .Add("zum").Aggregates(".")
                     .Add(entitySpec.Begin("", "innerlist")
@@ -292,6 +292,12 @@ namespace factor10.Obj2Db.Tests
             export.Run(x);
 
             _tables = export.TableManager.GetWithAllData().ToDictionary(_ => _.Name, _ => _);
+        }
+
+        [Test]
+        public void TestThatItSummedAllTheWayUp()
+        {
+            Assert.AreEqual(15 + 15 + 16 + 17 + 18, _tables["ontop"].Rows.Single().Columns.Single());
         }
 
     }

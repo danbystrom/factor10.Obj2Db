@@ -3,10 +3,21 @@ using System.Linq;
 
 namespace factor10.Obj2Db
 {
+    public enum AggregationType
+    {
+        Sum,
+        Count,
+        Min,
+        Max,
+        Avg    
+    }
+
     public class EntityAggregation : EntityFormula
     {
-        public EntityAggregation(entitySpec entitySpec)
-            : base(entitySpec)
+        public readonly AggregationType AggregationType;
+
+        public EntityAggregation(entitySpec entitySpec, Action<string> log)
+            : base(entitySpec, log)
         {
         }
 

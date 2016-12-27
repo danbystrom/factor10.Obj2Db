@@ -8,7 +8,7 @@ namespace factor10.Obj2Db
 {
     public sealed class LinkedFieldInfo
     {
-        private static readonly Dictionary<string, Func<IConvertible, object>> _cohersions = new Dictionary<string, Func<IConvertible, object>>
+        private static readonly Dictionary<string, Func<IConvertible, object>> Cohersions = new Dictionary<string, Func<IConvertible, object>>
         {
             {"Int32", _ => _.ToInt32(null)},
             {"Int64", _ => _.ToInt64(null)},
@@ -67,7 +67,7 @@ namespace factor10.Obj2Db
             }
 
             IEnumerable = CheckForIEnumerable(FieldType);
-            _cohersions.TryGetValue(StripNullable(FieldType).Name, out _coherse);
+            Cohersions.TryGetValue(StripNullable(FieldType).Name, out _coherse);
         }
 
         public static Type StripNullable(Type type)
@@ -165,6 +165,14 @@ namespace factor10.Obj2Db
         {
             var iconvertible = obj as IConvertible;
             return iconvertible != null && _coherse != null ? _coherse(iconvertible) : obj;
+        }
+
+        public static object CoherseType(Type type, object obj)
+        {
+            var iconvertible = obj as IConvertible;
+            Func<IConvertible, object> coherse;
+            Cohersions.TryGetValue(StripNullable(type).Name, out coherse);
+            return iconvertible != null && coherse != null ? coherse(iconvertible) : obj;
         }
 
         public static List<NameAndType> GetAllFieldsAndProperties(Type type)

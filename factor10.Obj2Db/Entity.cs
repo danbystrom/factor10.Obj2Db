@@ -53,9 +53,9 @@ namespace factor10.Obj2Db
             log?.Invoke($"create: {type.Name} - {entitySpec.name}");
 
             if (!string.IsNullOrEmpty(entitySpec.aggregation))
-                return new EntityAggregation(entitySpec);
+                return new EntityAggregation(entitySpec, log);
             if (!string.IsNullOrEmpty(entitySpec.formula))
-                return new EntityFormula(entitySpec);
+                return new EntityFormula(entitySpec, log);
 
             var fieldInfo = new LinkedFieldInfo(type, entitySpec.name);
             if (fieldInfo.IEnumerable != null)
@@ -82,6 +82,13 @@ namespace factor10.Obj2Db
         public override string ToString()
         {
             return Name;
+        }
+
+        public object CoherseType(object obj)
+        {
+            return FieldInfo != null
+                ? FieldInfo.CoherseType(obj)
+                : LinkedFieldInfo.CoherseType(FieldType, obj);
         }
 
     }

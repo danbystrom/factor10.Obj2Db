@@ -150,7 +150,7 @@ namespace factor10.Obj2Db
         {
             foreach (var p in AggregationMapper)
             {
-                var r = (result[p.Item2] as IConvertible)?.ToDouble(null) ?? 0;
+                var r = (double)result[p.Item2];
                 result[p.Item2] = r + (subResult[p.Item1] as IConvertible)?.ToDouble(null) ?? 0;
             }
         }
@@ -158,7 +158,7 @@ namespace factor10.Obj2Db
         public void AggregationEnd(object[] result)
         {
             foreach (var p in AggregationMapper)
-                result[p.Item2] = Fields[p.Item1].FieldInfo.CoherseType(result[p.Item2]);
+                result[p.Item2] = Fields[p.Item1].CoherseType(result[p.Item2]);
         }
 
     }
