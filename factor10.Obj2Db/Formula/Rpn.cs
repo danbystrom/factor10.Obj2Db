@@ -14,7 +14,7 @@ namespace factor10.Obj2Db.Formula
         private readonly Stack<RpnItem> _stack = new Stack<RpnItem>();  
         private int _i;
 
-        private Regex _legalOperand = new Regex("^([[@-Z\\d._$]+)", RegexOptions.IgnoreCase);
+        private readonly Regex _legalOperand = new Regex("^([[@-Z\\d._$#]+)", RegexOptions.IgnoreCase);
 
         public Rpn(string expression)
         {

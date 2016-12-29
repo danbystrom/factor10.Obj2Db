@@ -6,27 +6,15 @@ using System.Threading;
 namespace factor10.Obj2Db
 {
 
-    public sealed class Export<T>
+    public sealed class DataExtract<T>
     {
         public readonly EntityClass TopEntity;
         public readonly ITableManager TableManager;
 
-        public Export(entitySpec entitySpec, ITableManager tableManager = null, Action<string> log = null)
+        public DataExtract(entitySpec entitySpec, ITableManager tableManager = null, Action<string> log = null)
         {
             TopEntity = Entity.Create(entitySpec, typeof(T), log);
             TableManager = tableManager ?? new InMemoryTableManager();
-            //q(TopEntity);
-        }
-
-        private void q(EntityClass x)
-        {
-            foreach (var y in x.Lists)
-                q(y);
-            if (x.FieldInfo?.FieldType != x.FieldType)
-                throw new Exception();
-            foreach(var f in x.Fields)
-                if (f.FieldInfo?.FieldType != f.FieldType)
-                    throw new Exception();
         }
 
         public void Run(T obj)
@@ -37,17 +25,24 @@ namespace factor10.Obj2Db
         public void Run(IEnumerable<T> objs)
         {
             var ed = new ConcurrentEntityTableDictionary(TableManager, TopEntity);
+            var rowIndex = 0;
             objs.AsParallel().ForAll(_ =>
             {
-                run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty);
+                run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty, Interlocked.Increment(ref rowIndex));
             });
             TableManager.Flush();
         }
 
-        private object[] run(EntityWithTable ewt, object obj, Guid parentRowId)
+        private object[] run(
+            EntityWithTable ewt,
+            object obj,
+            Guid parentRowId,
+            int rowIndex)
         {
             var pk = Guid.NewGuid();
-            var rowResult = new object[ewt.Entity.Fields.Count];
+            var rowResult = new object[ewt.Entity.Fields.Count+1];
+            rowResult[rowResult.Length - 1] = rowIndex;
+            var subRowIndex = 0;
             foreach (var subEwt in ewt.Lists)
             {
                 var enumerable = subEwt.Entity.GetIEnumerable(obj);
@@ -57,12 +52,12 @@ namespace factor10.Obj2Db
                 {
                     subEwt.Entity.AggregationBegin(rowResult);
                     foreach (var itm in enumerable)
-                        subEwt.Entity.AggregationUpdate(rowResult, run(subEwt, itm, pk));
+                        subEwt.Entity.AggregationUpdate(rowResult, run(subEwt, itm, pk, subRowIndex++));
                     subEwt.Entity.AggregationEnd(rowResult);
                 }
                 else
                     foreach (var itm in enumerable)
-                        run(subEwt, itm, pk);
+                        run(subEwt, itm, pk, subRowIndex++);
             }
             ewt.Entity.AssignValue(rowResult, obj);
             if (ewt.Entity.PassesFilter(rowResult))

@@ -17,7 +17,7 @@ namespace factor10.Obj2Db.Tests
         public void SetUp()
         {
             var spec = entitySpec.Begin().Add("*");
-            var export = new Export<School>(spec);
+            var export = new DataExtract<School>(spec);
             _entity = export.TopEntity;
         }
 
@@ -81,7 +81,7 @@ namespace factor10.Obj2Db.Tests
         public void SetUp()
         {
             var spec = entitySpec.Begin().Add("*");
-            var export = new Export<TestClassWithSneakyStuff>(spec);
+            var export = new DataExtract<TestClassWithSneakyStuff>(spec);
             _entity = export.TopEntity;
 
             var tcwss = new TestClassWithSneakyStuff
@@ -119,7 +119,7 @@ namespace factor10.Obj2Db.Tests
         public void SetUp()
         {
             var spec = entitySpec.Begin().Add("*");
-            var export = new Export<DeepDeclaration>(spec);
+            var export = new DataExtract<DeepDeclaration>(spec);
             _entity = export.TopEntity;
 
             var dd = new DeepDeclaration
@@ -174,7 +174,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestDeepDeclaration()
         {
-            var export = new Export<DeepDeclaration>(entitySpec.Begin().Add("*"));
+            var export = new DataExtract<DeepDeclaration>(entitySpec.Begin().Add("*"));
             var spec = new entitySpec(export.TopEntity);
 
             CollectionAssert.AreEqual(new[]
@@ -201,7 +201,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestTestClassWithSneakyStuff()
         {
-            var export = new Export<TestClassWithSneakyStuff>(entitySpec.Begin().Add("*"));
+            var export = new DataExtract<TestClassWithSneakyStuff>(entitySpec.Begin().Add("*"));
             var spec = new entitySpec(export.TopEntity);
 
             CollectionAssert.AreEqual(new[]

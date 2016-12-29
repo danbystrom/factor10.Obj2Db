@@ -218,6 +218,13 @@ namespace factor10.Obj2Db.Tests.Formula
             Assert.AreEqual("0@a3$_ @ +", rpn.ToString());
         }
 
+        [Test]
+        public void TestFancyVariableName2()
+        {
+            var rpn = new Rpn("#index+1");
+            Assert.AreEqual("#index 1 +", rpn.ToString());
+        }
+
     }
 
 }

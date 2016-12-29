@@ -27,7 +27,7 @@ namespace factor10.Obj2Db.Tests
                 TheInt64 = (long) 1E18,
                 TheBool = true,
             };
-            var export = new Export<AllPropertyTypes>(entitySpec.Begin()
+            var export = new DataExtract<AllPropertyTypes>(entitySpec.Begin()
                 .Add("TheBool")
                 .Add("TheString")
                 .Add("TheDateTime")

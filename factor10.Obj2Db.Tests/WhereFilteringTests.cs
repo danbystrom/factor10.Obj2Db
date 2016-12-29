@@ -36,7 +36,7 @@ namespace factor10.Obj2Db.Tests
                     new TheTop {SomeStruct = new SomeStruct {X = 16, Y = 13}},
                 }
             };
-            var export = new Export<TheTop>(spec);
+            var export = new DataExtract<TheTop>(spec);
             export.Run(theTop);
             var tables = export.TableManager.GetWithAllData();
             var filteredTable = tables.Single(_ => _.Name == "SelfList");
@@ -87,7 +87,7 @@ namespace factor10.Obj2Db.Tests
                         .Add("FirstName")
                         .Add("LastName")));
 
-            var export = new Export<School>(spec);
+            var export = new DataExtract<School>(spec);
             export.Run(school);
             var tables = export.TableManager.GetWithAllData();
             var classesTable = tables.Single(_ => _.Name == "Classes");

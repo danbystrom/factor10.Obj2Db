@@ -35,7 +35,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestWithAllNulls()
         {
-            var export = new Export<ClassToTestEnumerables>(_spec);
+            var export = new DataExtract<ClassToTestEnumerables>(_spec);
             export.Run(new ClassToTestEnumerables());
         }
 
@@ -54,7 +54,7 @@ namespace factor10.Obj2Db.Tests
             c.DeeperF = c;
             c.DeeperP = c;
             var t = new InMemoryTableManager();
-            var export = new Export<ClassToTestEnumerables>(_spec, t);
+            var export = new DataExtract<ClassToTestEnumerables>(_spec, t);
             export.Run(c);
             var tables = export.TableManager.GetWithAllData().ToDictionary(_ => _.Name, _ => _.Rows);
             tables.Remove("ClassToTestEnumerables");
@@ -83,7 +83,7 @@ namespace factor10.Obj2Db.Tests
 
             var sb = new StringBuilder();
             Action<string> log = _ => sb.AppendLine(_);
-            var export = new Export<Nisse>(spec, null, log);
+            var export = new DataExtract<Nisse>(spec, null, log);
             export.Run(x);
 
             _tables = export.TableManager.GetWithAllData().ToDictionary(_ => _.Name, _ => _);

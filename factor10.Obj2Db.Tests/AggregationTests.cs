@@ -40,7 +40,7 @@ namespace factor10.Obj2Db.Tests
                 }
             };
             var t = new InMemoryTableManager();
-            var export = new Export<TheTop>(spec, t);
+            var export = new DataExtract<TheTop>(spec, t);
             export.Run(theTop);
             _tables = export.TableManager.GetWithAllData();
 
@@ -105,7 +105,7 @@ namespace factor10.Obj2Db.Tests
                 SelfList = new List<TheTop> {new TheTop {Double = 42}, new TheTop {Double = 43}}
             };
             var t = new InMemoryTableManager();
-            var export = new Export<TheTop>(spec, t);
+            var export = new DataExtract<TheTop>(spec, t);
             export.Run(theTop);
             _tables = export.TableManager.GetWithAllData();
 
@@ -155,7 +155,7 @@ namespace factor10.Obj2Db.Tests
                     {{1, 99}, {5, 15}}
             };
 
-            var export = new Export<TestClassWithSneakyStuff>(spec);
+            var export = new DataExtract<TestClassWithSneakyStuff>(spec);
             export.Run(x);
 
             var t = export.TableManager.GetWithAllData().Single(_ => _.Name == "DictionariesAreSneaky");
@@ -193,7 +193,7 @@ namespace factor10.Obj2Db.Tests
                 List3 = new List<List<int>> {new List<int> {15}, new List<int> {15, 16, 17}, new List<int> {18}}
             };
 
-            var export = new Export<Nisse>(spec);
+            var export = new DataExtract<Nisse>(spec);
             export.Run(x);
 
             var t = export.TableManager.GetWithAllData().First();
@@ -221,7 +221,7 @@ namespace factor10.Obj2Db.Tests
                 List1 = new List<int> {5, 6, 7},
             };
 
-            var export = new Export<Nisse>(spec);
+            var export = new DataExtract<Nisse>(spec);
             export.Run(x);
 
             var tables = export.TableManager.GetWithAllData();
@@ -288,7 +288,7 @@ namespace factor10.Obj2Db.Tests
 
             var sb = new StringBuilder();
             Action<string> log = _ => sb.AppendLine(_);
-            var export = new Export<Nisse>(spec, null, log);
+            var export = new DataExtract<Nisse>(spec, null, log);
             export.Run(x);
 
             _tables = export.TableManager.GetWithAllData().ToDictionary(_ => _.Name, _ => _);

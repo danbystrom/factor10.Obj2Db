@@ -69,7 +69,7 @@
     <Compile Include="SqlStuff.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="EntityDictionary.cs" />
-    <Compile Include="Export.cs" />
+    <Compile Include="DataExtract.cs" />
     <Compile Include="LinkedFieldInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Table.cs" />

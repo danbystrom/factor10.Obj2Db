@@ -19,7 +19,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimpleProperties()
         {
-            var export = new Export<TheTop>(entitySpec.Begin()
+            var export = new DataExtract<TheTop>(entitySpec.Begin()
                 .Add("FirstName")
                 .Add("SomeStruct.X"));
             export.Run(_td);
@@ -30,7 +30,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimplePropertiesAndIEnumerableOverPrimitive()
         {
-            var export = new Export<TheTop>(entitySpec.Begin()
+            var export = new DataExtract<TheTop>(entitySpec.Begin()
                 .Add("Strings"));
             export.Run(_td);
             var table = export.TableManager.GetWithAllData().Last();
@@ -40,7 +40,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSimplePropertiesAndIEnumerableOverStruct()
         {
-            var export = new Export<TheTop>(entitySpec.Begin()
+            var export = new DataExtract<TheTop>(entitySpec.Begin()
                 .Add(entitySpec.Begin("Structs")
                     .Add("X")
                     .Add("Y")));

@@ -44,7 +44,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestSchoolExample()
         {
-            var export = new Export<School>(_spec);
+            var export = new DataExtract<School>(_spec);
             export.Run(_school);
             var tables = export.TableManager.GetWithAllData();
             Assert.AreEqual(1, tables.Single(_ => _.Name == "School").Rows.Count);
@@ -56,7 +56,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void Test100Schools()
         {
-            var export = new Export<School>(_spec);
+            var export = new DataExtract<School>(_spec);
             var sw = Stopwatch.StartNew();
             export.Run(Enumerable.Range(0, 100).Select(_ => _school));
             Console.Write(sw.ElapsedMilliseconds.ToString());
@@ -73,7 +73,7 @@ namespace factor10.Obj2Db.Tests
                 return;
             const int numberOfSchools = 100;
             var tableFactory = new SqlTableManager(SqlStuff.ConnectionString("SchoolTest"));
-            var export = new Export<School>(_spec, tableFactory);
+            var export = new DataExtract<School>(_spec, tableFactory);
             SqlStuff.WithNewDb("SchoolTest", conn =>
             {
                 var sw = Stopwatch.StartNew();
@@ -90,7 +90,7 @@ namespace factor10.Obj2Db.Tests
         [Test, Explicit]
         public void Test10000Schools()
         {
-            var export = new Export<School>(_spec);
+            var export = new DataExtract<School>(_spec);
             var sw = Stopwatch.StartNew();
             export.Run(Enumerable.Range(0, 10000).Select(_ => _school));
             Console.Write(sw.ElapsedMilliseconds.ToString());

@@ -24,7 +24,9 @@ namespace factor10.Obj2Db
 
         public override void ParentInitialized(Entity parent, int index)
         {
-            Evaluator = new EvaluateRpn(new Rpn(Spec.formula), parent.Fields.Select(_ => _.NameAndType).ToList());
+            var fieldsNameAndTypes = parent.Fields.Select(_ => _.NameAndType).ToList();
+            fieldsNameAndTypes.Add(new NameAndType("#index", typeof(int)));
+            Evaluator = new EvaluateRpn(new Rpn(Spec.formula), fieldsNameAndTypes);
             FieldType = Evaluator.TypeEval() is RpnItemOperandNumeric
                 ? typeof(double)
                 : typeof(string);
