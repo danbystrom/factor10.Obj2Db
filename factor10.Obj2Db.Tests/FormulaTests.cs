@@ -33,7 +33,7 @@ namespace factor10.Obj2Db.Tests
             var spec = entitySpec.Begin()
                 .Add(entitySpec.Begin("Strings")
                 .Add("x").Formula("#index*2")
-                .Add("|y"));
+                .Add("@|y"));
 
             var export = new DataExtract<TheTop>(spec);
             export.Run(new TheTop {Strings = new List<string> {"a", "b", "c", "d", "e"}});
@@ -53,7 +53,7 @@ namespace factor10.Obj2Db.Tests
                 .Add("Tot").Aggregates("Strings.x")
                 .Add(entitySpec.Begin("Strings")
                 .Add("x").Formula("#index*2")
-                .Add("|y"));
+                .Add("@|y"));
 
             var export = new DataExtract<TheTop>(spec);
             export.Run(new TheTop { Strings = new List<string> { "a", "b", "c", "d", "e" } });

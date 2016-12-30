@@ -10,6 +10,7 @@ namespace factor10.Obj2Db
     {
         private readonly EvaluateRpn _whereClause;
         private readonly Entity[] _fieldsThenFormulas;
+        public readonly List<EntityAggregation> AggregationFields = new List<EntityAggregation>();
 
         public EntityClass(entitySpec entitySpec, Type type, LinkedFieldInfo fieldInfo, Action<string> log)
             : base(entitySpec)
@@ -138,27 +139,6 @@ namespace factor10.Obj2Db
         {
             foreach (var entity in _fieldsThenFormulas)
                 entity.AssignValue(result, obj);
-        }
-
-        public void AggregationBegin(object[] result)
-        {
-            foreach (var p in AggregationMapper)
-                result[p.Item2] = 0.0;
-        }
-
-        public void AggregationUpdate(object[] result, object[] subResult)
-        {
-            foreach (var p in AggregationMapper)
-            {
-                var r = (double)result[p.Item2];
-                result[p.Item2] = r + (subResult[p.Item1] as IConvertible)?.ToDouble(null) ?? 0;
-            }
-        }
-
-        public void AggregationEnd(object[] result)
-        {
-            foreach (var p in AggregationMapper)
-                result[p.Item2] = Fields[p.Item1].CoherseType(result[p.Item2]);
         }
 
     }

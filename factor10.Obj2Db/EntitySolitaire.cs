@@ -5,7 +5,7 @@ namespace factor10.Obj2Db
     public class EntitySolitaire : Entity
     {
         public EntitySolitaire(Type type)
-            :base(entitySpec.Begin("value"))
+            :base(entitySpec.Begin("@"))
         {
             FieldInfo = LinkedFieldInfo.Null(type);
             FieldType = FieldInfo.FieldType;

@@ -74,8 +74,8 @@ namespace factor10.Obj2Db.Tests
             var spec = entitySpec.Begin(null, "ontop")
                 //.Add("SumList3").Aggregates("List3.").NotSaved()
                 .Add(entitySpec.Begin("List3")
-                    .Add(entitySpec.Begin("", "innerlist")
-                        .Add("|zvalue")));
+                    .Add(entitySpec.Begin("@", "innerlist")
+                        .Add("@|zvalue")));
             var x = new Nisse
             {
                 List3 = new List<List<int>> { new List<int> { 15 }, new List<int> { 15, 16, 17 }, new List<int> { 18 } }

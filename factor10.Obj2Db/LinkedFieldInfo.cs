@@ -35,7 +35,7 @@ namespace factor10.Obj2Db
 
         public LinkedFieldInfo(Type type, string name)
         {
-            if (name == "")
+            if (name == "@")
             {
                 // auto-referencing
                 FieldType = type;
@@ -135,7 +135,7 @@ namespace factor10.Obj2Db
 
         public static LinkedFieldInfo Null(Type type)
         {
-            return new LinkedFieldInfo(type, "");
+            return new LinkedFieldInfo(type, "@");
         }
 
         public object GetValueSlower(object obj)

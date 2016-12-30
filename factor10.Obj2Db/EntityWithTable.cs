@@ -10,7 +10,7 @@ namespace factor10.Obj2Db
         public readonly ITable Table;
 
         public readonly List<EntityWithTable> Lists = new List<EntityWithTable>();
-        public readonly bool HasAggregation;
+        public readonly Aggregator Aggregator;
 
         public EntityWithTable(EntityClass entity, ITableManager t, bool hasFk = false)
         {
@@ -19,11 +19,15 @@ namespace factor10.Obj2Db
                 Table = t.New(entity, hasFk);
             foreach (var e in entity.Lists)
                 Lists.Add(new EntityWithTable(e, t, true));
-            HasAggregation = Entity.AggregationMapper.Any();
+            if (entity.AggregationFields.Any())
+                Aggregator = new Aggregator(entity, entity.AggregationFields.ToArray());
+            //var a = entity.Fields.OfType<EntityAggregation>().ToArray();
+            //if(a.Any())
+            //    Aggregator = new Aggregator(entity, a);
         }
 
     }
 
-
 }
+
 

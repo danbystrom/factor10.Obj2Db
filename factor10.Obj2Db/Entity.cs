@@ -22,9 +22,6 @@ namespace factor10.Obj2Db
 
         public Type FieldType { get; protected set; }
 
-        // when an aggregation field is specified, this is set in the entity that holds the aggregated result (the subentity), 
-        // so that the result value can be be aggregated up to the correct value in the parent
-        public readonly List<Tuple<int, int>> AggregationMapper = new List<Tuple<int, int>>();
 
         public NameAndType NameAndType => new NameAndType(Name, FieldType);
 

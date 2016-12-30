@@ -40,7 +40,7 @@ namespace factor10.Obj2Db
             int rowIndex)
         {
             var pk = Guid.NewGuid();
-            var rowResult = new object[ewt.Entity.Fields.Count+1];
+            var rowResult = new object[ewt.Entity.Fields.Count + 1];
             rowResult[rowResult.Length - 1] = rowIndex;
             var subRowIndex = 0;
             foreach (var subEwt in ewt.Lists)
@@ -48,20 +48,22 @@ namespace factor10.Obj2Db
                 var enumerable = subEwt.Entity.GetIEnumerable(obj);
                 if (enumerable == null)
                     continue;
-                if (subEwt.HasAggregation)
+                if (subEwt.Aggregator != null)
                 {
-                    subEwt.Entity.AggregationBegin(rowResult);
+                    var aggregator = subEwt.Aggregator;
+                    aggregator.Begin();
                     foreach (var itm in enumerable)
-                        subEwt.Entity.AggregationUpdate(rowResult, run(subEwt, itm, pk, subRowIndex++));
-                    subEwt.Entity.AggregationEnd(rowResult);
+                        aggregator.Update(run(subEwt, itm, pk, subRowIndex++));
+                    aggregator.End(rowResult);
                 }
                 else
                     foreach (var itm in enumerable)
                         run(subEwt, itm, pk, subRowIndex++);
             }
             ewt.Entity.AssignValue(rowResult, obj);
-            if (ewt.Entity.PassesFilter(rowResult))
-                ewt.Table?.AddRow(pk, parentRowId, rowResult);
+            if (!ewt.Entity.PassesFilter(rowResult))
+                return null;
+            ewt.Table?.AddRow(pk, parentRowId, rowResult);
             return rowResult;
         }
 

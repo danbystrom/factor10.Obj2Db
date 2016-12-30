@@ -178,14 +178,14 @@ namespace factor10.Obj2Db.Tests
         public void TestThatAggregatedValuesCanBeUsedInFormulas()
         {
             var spec = entitySpec.Begin()
-                .Add("SumList1").Aggregates("List1.value").NotSaved()
-                .Add("SumList2").Aggregates("List2.value").NotSaved()
+                .Add("SumList1").Aggregates("List1.@").NotSaved()
+                .Add("SumList2").Aggregates("List2.@").NotSaved()
                 .Add("Average").Formula("(SumList1+SumList2)/2")
                 .Add("List1")
                 .Add("List2")
                 .Add(entitySpec.Begin("List3")
-                    .Add(entitySpec.Begin("", "q")
-                        .Add("|z")));
+                    .Add(entitySpec.Begin("@", "q")
+                        .Add("@|z")));
             var x = new Nisse
             {
                 List1 = new List<int> {5, 6, 7},
@@ -213,9 +213,9 @@ namespace factor10.Obj2Db.Tests
         public void TestThatAggregatedValuesCanBeUsedInFormulas()
         {
             var spec = entitySpec.Begin(null, "Tjo")
-                .Add("squash").Aggregates("List1.")
+                .Add("squash").Aggregates("List1.@")
                 .Add(entitySpec.Begin("List1", "Hopp")
-                    .Add("|gurka"));
+                    .Add("@|gurka"));
             var x = new Nisse
             {
                 List1 = new List<int> {5, 6, 7},
@@ -278,9 +278,9 @@ namespace factor10.Obj2Db.Tests
             var spec = entitySpec.Begin(null, "ontop")
                 .Add("bigzum").Aggregates("List3.zum")
                 .Add(entitySpec.Begin("List3")
-                    .Add("zum").Aggregates(".")
-                    .Add(entitySpec.Begin("", "innerlist")
-                        .Add("|zvalue")));
+                    .Add("zum").Aggregates("@.@")
+                    .Add(entitySpec.Begin("@", "innerlist")
+                        .Add("@|zvalue")));
             var x = new Nisse
             {
                 List3 = new List<List<int>> {new List<int> {15}, new List<int> {15, 16, 17}, new List<int> {18}}
@@ -298,6 +298,50 @@ namespace factor10.Obj2Db.Tests
         public void TestThatItSummedAllTheWayUp()
         {
             Assert.AreEqual(15 + 15 + 16 + 17 + 18, _tables["ontop"].Rows.Single().Columns.Single());
+        }
+
+    }
+
+    [TestFixture]
+    public class TestAllAggregationTypes
+    {
+        [Test]
+        public void TestThatAggregatedValuesCanBeUsedInFormulas()
+        {
+            var spec = entitySpec.Begin()
+                    .Add("SumList1").Aggregates("List1.@")
+                    .Add("SumList2").Aggregates("List2.@")
+                    .Add("SumList1_").Aggregates("List1.@", "")
+                    .Add("SumList2_").Aggregates("List2.@", "")
+                    .Add("MaxList1").Aggregates("List1.@", "max")
+                    .Add("MaxList2").Aggregates("List2.@", "max")
+                    .Add("MinList1").Aggregates("List1.@", "min")
+                    .Add("MinList2").Aggregates("List2.@", "min")
+                    .Add(entitySpec.Begin("List1").Where("@!=7"))
+                    .Add(entitySpec.Begin("List2").Where("@!=7"))
+                ;
+            var x = new Nisse
+            {
+                List1 = new List<int> { 5, 6, 7 },
+                List2 = new List<int> { 7, 15, 18, 20 },
+            };
+
+            var export = new DataExtract<Nisse>(spec);
+            export.Run(x);
+
+            var t = export.TableManager.GetWithAllData().First();
+
+            CollectionAssert.AreEqual(new object[]
+            {
+                5 + 6,
+                15 + 18 + 20,
+                5 + 6,
+                15 + 18 + 20,
+                6,
+                20,
+                5,
+                15,
+            }, t.Rows.Single().Columns);
         }
 
     }
