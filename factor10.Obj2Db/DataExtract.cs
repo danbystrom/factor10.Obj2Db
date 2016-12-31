@@ -48,17 +48,14 @@ namespace factor10.Obj2Db
                 var enumerable = subEwt.Entity.GetIEnumerable(obj);
                 if (enumerable == null)
                     continue;
-                if (subEwt.Aggregator != null)
+                var aggregator = subEwt.Aggregator;
+                aggregator?.Begin();
+                foreach (var itm in enumerable)
                 {
-                    var aggregator = subEwt.Aggregator;
-                    aggregator.Begin();
-                    foreach (var itm in enumerable)
-                        aggregator.Update(run(subEwt, itm, pk, subRowIndex++));
-                    aggregator.End(rowResult);
+                    var subresult = run(subEwt, itm, pk, subRowIndex++);
+                    aggregator?.Update(subresult);
                 }
-                else
-                    foreach (var itm in enumerable)
-                        run(subEwt, itm, pk, subRowIndex++);
+                aggregator?.End(rowResult);
             }
             ewt.Entity.AssignValue(rowResult, obj);
             if (!ewt.Entity.PassesFilter(rowResult))

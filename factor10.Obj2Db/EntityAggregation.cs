@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using factor10.Obj2Db.Formula;
 
 namespace factor10.Obj2Db
 {
@@ -9,13 +11,15 @@ namespace factor10.Obj2Db
         Count,
         Min,
         Max,
-        Avg    
+        Avg
     }
 
     public class EntityAggregation : Entity
     {
         public readonly AggregationType AggregationType;
         public int SourceIndex { get; private set; }
+
+        private EvaluateRpn _evaluator;
 
         public EntityAggregation(entitySpec entitySpec, Action<string> log)
             : base(entitySpec)
@@ -24,12 +28,15 @@ namespace factor10.Obj2Db
                 AggregationType = AggregationType.Sum;
             else
                 AggregationType = (AggregationType) Enum.Parse(typeof(AggregationType), entitySpec.aggregationtype, true);
+            if (string.IsNullOrEmpty(entitySpec.formula))
+                return;
+            _evaluator = new EvaluateRpn(new Rpn(entitySpec.formula), new List<NameAndType>
+                {new NameAndType("@", typeof(double))});
         }
 
         public override void AssignValue(object[] result, object obj)
         {
-            //if(Evaluator!=null)
-            //    base.AssignValue(result, obj);
+            throw new NotImplementedException();
         }
 
         public override void ParentInitialized(Entity parent, int index)
@@ -45,11 +52,12 @@ namespace factor10.Obj2Db
             SourceIndex = subFieldIndex;
             siblingEntity.AggregationFields.Add(this);
             FieldType = siblingEntity.Fields[subFieldIndex].FieldType;
-
-            //if (!string.IsNullOrEmpty(Spec.formula))
-            //    base.ParentInitialized(parent, index);
         }
 
+        public object Evaluate(object obj)
+        {
+            return _evaluator?.Eval(new[] {obj}).Numeric ?? obj;
+        }
     }
 
 }

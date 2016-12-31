@@ -30,9 +30,7 @@ namespace factor10.Obj2Db
                 var sourceIndex = fieldAggregators[i].SourceIndex;
                 var destinationIndex = i;
                 var action = dic[fieldAggregators[i].AggregationType];
-                Action<object[]> w = subresult =>
-                    action(destinationIndex, (subresult[sourceIndex] as IConvertible)?.ToDouble(null) ?? 0);
-                q.Add(w);
+                q.Add(subresult => action(destinationIndex, (subresult[sourceIndex] as IConvertible)?.ToDouble(null) ?? 0));
             }
             _aggregations = q.ToArray();
         }
@@ -72,7 +70,32 @@ namespace factor10.Obj2Db
         public void End(object[] result)
         {
             for (var i = 0; i < _fieldAggregators.Length; i++)
-                result[_fieldAggregators[i].ResultSetIndex] = _fieldAggregators[i].CoherseType(_intermediateResult[i]);
+            {
+                var fa = _fieldAggregators[i];
+                object obj;
+                switch (fa.AggregationType)
+                {
+                    case AggregationType.Min:
+                    case AggregationType.Max:
+                        obj = _count > 0
+                            ? fa.CoherseType(_intermediateResult[i])
+                            : null;
+                        break;
+                    case AggregationType.Avg:
+                        obj = _count > 0
+                            ? fa.CoherseType(_intermediateResult[i]/_count)
+                            : null;
+                        break;
+                    case AggregationType.Count:
+                        obj = _count;
+                        break;
+                    default:
+                        obj = fa.CoherseType(_intermediateResult[i]);
+                        break;
+                }
+                result[fa.ResultSetIndex] = fa.Evaluate(obj);
+            }
+
         }
 
     }

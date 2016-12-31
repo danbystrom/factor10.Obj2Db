@@ -305,28 +305,32 @@ namespace factor10.Obj2Db.Tests
     [TestFixture]
     public class TestAllAggregationTypes
     {
+        private readonly entitySpec _spec = entitySpec.Begin()
+            .Add("SumList1").Aggregates("List1.@")
+            .Add("SumList2").Aggregates("List2.@")
+            .Add("SumList1_").Aggregates("List1.@", "")
+            .Add("SumList2_").Aggregates("List2.@", "")
+            .Add("MaxList1").Aggregates("List1.@", "max")
+            .Add("MaxList2").Aggregates("List2.@", "max")
+            .Add("MinList1").Aggregates("List1.@", "min")
+            .Add("MinList2").Aggregates("List2.@", "min")
+            .Add("MinList1").Aggregates("List1.@", "avg")
+            .Add("MinList2").Aggregates("List2.@", "avg")
+            .Add("MinList1").Aggregates("List1.@", "count")
+            .Add("MinList2").Aggregates("List2.@", "count")
+            .Add(entitySpec.Begin("List1").Where("@!=7"))
+            .Add(entitySpec.Begin("List2").Where("@!=7"));
+
         [Test]
-        public void TestThatAggregatedValuesCanBeUsedInFormulas()
+        public void BasicTestOfAllAggregationTypes()
         {
-            var spec = entitySpec.Begin()
-                    .Add("SumList1").Aggregates("List1.@")
-                    .Add("SumList2").Aggregates("List2.@")
-                    .Add("SumList1_").Aggregates("List1.@", "")
-                    .Add("SumList2_").Aggregates("List2.@", "")
-                    .Add("MaxList1").Aggregates("List1.@", "max")
-                    .Add("MaxList2").Aggregates("List2.@", "max")
-                    .Add("MinList1").Aggregates("List1.@", "min")
-                    .Add("MinList2").Aggregates("List2.@", "min")
-                    .Add(entitySpec.Begin("List1").Where("@!=7"))
-                    .Add(entitySpec.Begin("List2").Where("@!=7"))
-                ;
             var x = new Nisse
             {
-                List1 = new List<int> { 5, 6, 7 },
-                List2 = new List<int> { 7, 15, 18, 20 },
+                List1 = new List<int> {5, 6, 7},
+                List2 = new List<int> {7, 15, 18, 20},
             };
 
-            var export = new DataExtract<Nisse>(spec);
+            var export = new DataExtract<Nisse>(_spec);
             export.Run(x);
 
             var t = export.TableManager.GetWithAllData().First();
@@ -341,6 +345,41 @@ namespace factor10.Obj2Db.Tests
                 20,
                 5,
                 15,
+                LinkedFieldInfo.CoherseType(typeof(int), (5 + 6) / 2.0),
+                LinkedFieldInfo.CoherseType(typeof(int), (15 + 18 + 20) / 3.0),
+                2,
+                3
+            }, t.Rows.Single().Columns);
+        }
+
+        [Test]
+        public void TestThatAggregationWorsWithEmptyLists()
+        {
+            var x = new Nisse
+            {
+                List1 = new List<int>(),
+                List2 = new List<int> {7}
+            };
+
+            var export = new DataExtract<Nisse>(_spec);
+            export.Run(x);
+
+            var t = export.TableManager.GetWithAllData().First();
+
+            CollectionAssert.AreEqual(new object[]
+            {
+                0,
+                0,
+                0,
+                0,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                0
             }, t.Rows.Single().Columns);
         }
 

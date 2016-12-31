@@ -3,12 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
+using NUnit.Framework;
 
 namespace factor10.Obj2Db
 {
     public interface ITableManager
     {
-        ITable New(Entity entity, bool hasForeignKey);
+        ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex, int foreignKeyIndex);
         void Save(ITable table);
         void Flush();
         List<ITable> GetWithAllData();
@@ -36,9 +37,9 @@ namespace factor10.Obj2Db
             return conn;
         }
 
-        public ITable New(Entity entity, bool hasForeignKey)
+        public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex, int foreignKeyIndex)
         {
-            var table = new Table(this, entity, hasForeignKey, FlushThreshold);
+            var table = new Table(this, entity, isTopTable, isLeafTable, -1, -1, FlushThreshold);
             _tables.Add(table);
             return table;
         }
@@ -67,10 +68,10 @@ namespace factor10.Obj2Db
                 Save(table);
             using (var conn = getOpenConnection())
                 foreach (var table in _tables)
-                    if (table.HasForeignKey && !tableWithFks.Contains(table.Name))
+                    if (!table.IsTopTable && !tableWithFks.Contains(table.Name))
                     {
                         tableWithFks.Add(table.Name);
-                        using (var cmd = new SqlCommand($"CREATE INDEX {table.Name}_fk ON {table.Name}(fk)", conn))
+                        using (var cmd = new SqlCommand($"CREATE INDEX {table.Name}_fk ON {table.Name}(_fk_)", conn))
                             cmd.ExecuteNonQuery();
                     }
         }
@@ -88,9 +89,11 @@ namespace factor10.Obj2Db
                     return;
                 Console.WriteLine($"Will create '{table.Name}'");
                 _createdTables.Add(table.Name);
-                var prefixedColumns = "[pk] uniqueidentifier not null,";
-                if (table.HasForeignKey)
-                    prefixedColumns += "[fk] uniqueidentifier not null,";
+                var prefixedColumns = "";
+                if (!table.IsLeafTable && table.PrimaryKeyIndex<0)
+                    prefixedColumns = "[_id_] uniqueidentifier not null,";
+                if (!table.IsTopTable && table.ForeignKeyIndex<0)
+                    prefixedColumns += "[_fk_] uniqueidentifier not null,";
                 using (var cmd = new SqlCommand(SqlStuff.GenerateCreateTable(table, prefixedColumns), conn))
                     cmd.ExecuteNonQuery();
             }
@@ -108,11 +111,11 @@ namespace factor10.Obj2Db
     {
         public readonly List<Table> Tables = new List<Table>();
 
-        public ITable New(Entity entity, bool hasForeignKey)
+        public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex, int foreignKeyIndex)
         {
             lock (this)
             {
-                var table = new Table(this, entity, hasForeignKey, int.MaxValue);
+                var table = new Table(this, entity, isTopTable, isLeafTable, -1, -1, int.MaxValue);
                 Tables.Add(table);
                 return table;
             }

@@ -202,6 +202,25 @@ namespace factor10.Obj2Db.Tests.Formula
             Assert.AreEqual(expected, value.String);
         }
 
+        [TestCase("a", "b", 0)]
+        [TestCase(null, null, 1)]
+        [TestCase("c", null, 0)]
+        [TestCase(null, "d", 0)]
+        [TestCase("nisse", "nisse", 1)]
+        [TestCase(5, "5", 1)]
+        [TestCase("5", 5, 1)]
+        [TestCase(5, 5, 1)]
+        public void TestEquality(object var1, object var2, int expected)
+        {
+            var rpn = new Rpn("var1==var2");
+            Assert.AreEqual("var1 var2 ==", rpn.ToString());
+
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>
+            {new NameAndType("var1", typeof (string)),new NameAndType("var2", typeof (string))});
+            var value = eval.Eval(new object[] { var1, var2 });
+            Assert.AreEqual(expected, value.Numeric);
+        }
+
         //[TestCase(0, "kalle", "nisse", "kalle")]
         //[TestCase(0, null, "nisse", null)]
         //[TestCase(1, "kalle", "nisse", "")]
