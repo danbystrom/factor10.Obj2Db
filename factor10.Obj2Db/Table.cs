@@ -8,11 +8,10 @@ namespace factor10.Obj2Db
     public interface ITable
     {
         string Name { get; }
-        void AddRow(Guid pk, Guid fk, object[] columns);
+        void AddRow(object pk, object fk, object[] columns);
         List<TableRow> Rows { get; }
         List<NameAndType> Fields { get; }
         int PrimaryKeyIndex { get; }
-        int ForeignKeyIndex { get; }
         bool IsTopTable { get; }
         bool IsLeafTable { get; }
         int SavedRowCount { get; }
@@ -25,12 +24,13 @@ namespace factor10.Obj2Db
         public string Name { get; }
         public bool IsTopTable { get; }
         public bool IsLeafTable { get; }
-        public int ForeignKeyIndex { get; }
         public int PrimaryKeyIndex { get; }
         public int SavedRowCount { get; private set; }
 
         public List<NameAndType> Fields { get; }
         public List<TableRow> Rows { get;} = new List<TableRow>();
+
+        public bool AutomaticPrimaryKey => !IsLeafTable && PrimaryKeyIndex < 0;
 
         private readonly int _flushThreshold;
 
@@ -40,14 +40,14 @@ namespace factor10.Obj2Db
             bool isTopTable,
             bool isLeafTable,
             int primaryKeyIndex,
-            int foreignyKeyIndex,
             int flushThreshold)
         {
             TableManager = tableManager;
             _flushThreshold = flushThreshold;
             Name = entity.ExternalName;
+            IsTopTable = isTopTable;
+            IsLeafTable = isLeafTable;
             PrimaryKeyIndex = primaryKeyIndex;
-            ForeignKeyIndex = foreignyKeyIndex;
             Fields = entity.Fields.Where(_ => !_.NoSave).Select(_ => new NameAndType(_.ExternalName, _.FieldType)).ToList();
             if(Fields.Any(_ => string.IsNullOrEmpty(_.Name)))
                 throw new ArgumentException($"Table {Name} contains empty column name");
@@ -56,9 +56,9 @@ namespace factor10.Obj2Db
         public DataTable ExtractDataTable()
         {
             var table = new DataTable();
-            if(PrimaryKeyIndex<0)
+            if(AutomaticPrimaryKey)
                 table.Columns.Add("_id_", typeof (Guid));
-            if (ForeignKeyIndex<0)
+            if (!IsTopTable)
                 table.Columns.Add("_fk_", typeof (Guid));
             foreach (var field in Fields)
                 table.Columns.Add(field.Name, LinkedFieldInfo.StripNullable(field.Type));
@@ -66,9 +66,9 @@ namespace factor10.Obj2Db
             {
                 var row = table.NewRow();
                 var idx = 0;
-                if (PrimaryKeyIndex < 0)
+                if (AutomaticPrimaryKey)
                     row[idx++] = itm.PrimaryKey;
-                if (ForeignKeyIndex<0)
+                if (!IsTopTable)
                     row[idx++] = itm.ParentRow;
                 for (var col = 0; col < Fields.Count; col++)
                     row[idx++] = itm.Columns[col] ?? DBNull.Value;
@@ -79,7 +79,7 @@ namespace factor10.Obj2Db
             return table;
         }
 
-        public void AddRow(Guid pk, Guid fk, object[] columns)
+        public void AddRow(object pk, object fk, object[] columns)
         {
             if (columns.Length < Fields.Count)  // notsaved columns are passed here and will/should be truncated later
                 throw new ArgumentException();
@@ -93,11 +93,11 @@ namespace factor10.Obj2Db
 
     public class TableRow
     {
-        public readonly Guid PrimaryKey;
-        public readonly Guid ParentRow;
+        public readonly object PrimaryKey;
+        public readonly object ParentRow;
         public object[] Columns;
 
-        public TableRow(Guid pk, Guid parentRow)
+        public TableRow(object pk, object parentRow)
         {
             PrimaryKey = pk;
             ParentRow = parentRow;

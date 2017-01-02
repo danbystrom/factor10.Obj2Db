@@ -35,9 +35,9 @@ namespace ConsoleApplication1
 
 
             const int numberOfSchools = 10000;
-            var tableFactory = new SqlTableManager(SqlStuff.ConnectionString("SchoolTest"));
+            var tableFactory = new SqlTableManager(SqlTestHelpers.ConnectionString("SchoolTest"));
             var export = new DataExtract<School>(spec, tableFactory);
-            SqlStuff.WithNewDb("SchoolTest", conn =>
+            SqlTestHelpers.WithNewDb("SchoolTest", conn =>
             {
                 var sw = Stopwatch.StartNew();
                 export.Run(Enumerable.Range(0, numberOfSchools).Select(_ => school));

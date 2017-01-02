@@ -221,6 +221,43 @@ namespace factor10.Obj2Db.Tests.Formula
             Assert.AreEqual(expected, value.Numeric);
         }
 
+        [Test]
+        public void TestThatStringIsAutomaticallyConvertedToNumber()
+        {
+            var rpn = new Rpn("var1*2");
+            Assert.AreEqual("var1 2 *", rpn.ToString());
+
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>
+                {new NameAndType("var1", typeof(string))});
+            var value = eval.Eval(new object[] { -1 });
+            Assert.AreEqual(-2, value.Numeric);
+        }
+
+        [Test]
+        public void TestThatNullabelsWorks1()
+        {
+            var rpn = new Rpn("var1??-1");
+            Assert.AreEqual("var1 -1 ??", rpn.ToString());
+
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>
+                {new NameAndType("var1", typeof(double))});
+            var value = eval.Eval(new object[] { null });
+            Assert.AreEqual(-1, value.Numeric);
+        }
+
+        [Test]
+        public void TestThatNullabelsWorks2()
+        {
+            var rpn = new Rpn("var1");
+            Assert.AreEqual("var1", rpn.ToString());
+
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>
+                {new NameAndType("var1", typeof(double))});
+            var value = eval.Eval(new object[] { null });
+            Assert.AreEqual(0, value.Numeric);
+            Assert.IsTrue(value.IsNull);
+        }
+
         //[TestCase(0, "kalle", "nisse", "kalle")]
         //[TestCase(0, null, "nisse", null)]
         //[TestCase(1, "kalle", "nisse", "")]

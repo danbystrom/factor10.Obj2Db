@@ -12,6 +12,9 @@ namespace factor10.Obj2Db
         private readonly Entity[] _fieldsThenFormulas;
         public readonly List<EntityAggregation> AggregationFields = new List<EntityAggregation>();
 
+        public int EffectiveFieldCount;
+        public int ParentEffectiveFieldCount;
+
         public EntityClass(entitySpec entitySpec, Type type, LinkedFieldInfo fieldInfo, Action<string> log)
             : base(entitySpec)
         {
@@ -28,7 +31,7 @@ namespace factor10.Obj2Db
 
             breakDownSubEntities(type, log);
 
-            // move the nosave fields to always be at the end of the list - this feature is not completed and has no tests
+            // move the nosave fields to always be at the end of the list
             var noSaveFields = Fields.Where(_ => _.NoSave).ToList();
             Fields.RemoveAll(_ => _.NoSave);
             SaveableFieldCount = Fields.Count;
@@ -36,12 +39,14 @@ namespace factor10.Obj2Db
 
             // this is temporary - to be able to serialze a contract with "*" since it was digging up so much garbage...
             // need to investigae each "garbage" occurrence and handle it more elegantly
-            Fields.RemoveAll(_ => _ is EntityPlainField && SqlStuff.Field2Sql(_.NameAndType, true) == null);
+            Fields.RemoveAll(_ => _ is EntityPlainField && SqlHelpers.Field2Sql(_.NameAndType, true) == null);
             Lists.RemoveAll(_ => !_.Fields.Any() && !_.Lists.Any());
 
-            // now it's time to connect the aggregated fields
+            EffectiveFieldCount = Fields.Count + 1;
             for (var fi = 0; fi < Fields.Count; fi++)
                 Fields[fi].ParentInitialized(this, fi);
+            for (var li = 0; li < Lists.Count; li++)
+                Lists[li].ParentInitialized(this, li);
 
             if ( !string.IsNullOrEmpty(Spec.where))
                 _whereClause = new EvaluateRpn(new Rpn(Spec.where), Fields.Select(_ => _.NameAndType).ToList());
@@ -123,6 +128,11 @@ namespace factor10.Obj2Db
             }
 
             haltRecursion.Remove(subType);
+        }
+
+        public override void ParentInitialized(EntityClass parent, int index)
+        {
+            ParentEffectiveFieldCount = parent.EffectiveFieldCount;
         }
 
         public override bool PassesFilter(object[] rowResult)

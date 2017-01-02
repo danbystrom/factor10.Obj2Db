@@ -22,7 +22,7 @@ namespace factor10.Obj2Db
                 : itm.String;
         }
 
-        public override void ParentInitialized(Entity parent, int index)
+        public override void ParentInitialized(EntityClass parent, int index)
         {
             var fieldsNameAndTypes = parent.Fields.Select(_ => _.NameAndType).ToList();
             fieldsNameAndTypes.Add(new NameAndType("#index", typeof(int)));

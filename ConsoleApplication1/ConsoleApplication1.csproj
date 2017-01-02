@@ -43,6 +43,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="School.cs" />
+    <Compile Include="SqlTestHelpers.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\factor10.Obj2Db\factor10.Obj2Db.csproj">

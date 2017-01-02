@@ -353,7 +353,7 @@ namespace factor10.Obj2Db.Tests
         }
 
         [Test]
-        public void TestThatAggregationWorsWithEmptyLists()
+        public void TestThatAggregationWorksWithEmptyLists()
         {
             var x = new Nisse
             {
@@ -381,6 +381,58 @@ namespace factor10.Obj2Db.Tests
                 0,
                 0
             }, t.Rows.Single().Columns);
+        }
+
+    }
+
+    [TestFixture]
+    public class TestAllAggregationTypesWithFormulas
+    {
+        private readonly entitySpec _spec = entitySpec.Begin()
+            .Add("SumList1").Aggregates("List1.@").Formula("@*2")
+            .Add("SumList2").Aggregates("List2.@").Formula("@??42")
+            .Add("SumList1_").Aggregates("List1.@", "").Formula("@??42")
+            .Add("SumList2_").Aggregates("List2.@", "").Formula("@??43")
+            .Add("MaxList1").Aggregates("List1.@", "max").Formula("@??44")
+            .Add("MaxList2").Aggregates("List2.@", "max").Formula("@??45")
+            .Add("MinList1").Aggregates("List1.@", "min").Formula("@??46")
+            .Add("MinList2").Aggregates("List2.@", "min").Formula("@??47")
+            .Add("MinList1").Aggregates("List1.@", "avg").Formula("@??48")
+            .Add("MinList2").Aggregates("List2.@", "avg").Formula("@??49")
+            .Add("MinList1").Aggregates("List1.@", "count").Formula("@*2")
+            .Add("MinList2").Aggregates("List2.@", "count").Formula("@??50")
+            .Add(entitySpec.Begin("List1").Where("@!=7"))
+            .Add(entitySpec.Begin("List2").Where("@!=7"));
+
+        [Test]
+        public void BasicTestOfAllAggregationTypes()
+        {
+            var x = new Nisse
+            {
+                List1 = new List<int> { -1 },
+                List2 = null
+            };
+
+            var export = new DataExtract<Nisse>(_spec);
+            export.Run(x);
+
+            var t = export.TableManager.GetWithAllData().First();
+            var column = t.Rows.Single().Columns;
+            CollectionAssert.AreEqual(new object[]
+            {
+                -1  * 2,
+                0,
+                -1,
+                0,
+                -1,
+                45,
+                -1,
+                47,
+                -1,
+                49,
+                2,
+                0
+            }, column);
         }
 
     }

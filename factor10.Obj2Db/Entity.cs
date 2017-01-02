@@ -67,7 +67,7 @@ namespace factor10.Obj2Db
         {
         }
 
-        public virtual void ParentInitialized(Entity parent, int index)
+        public virtual void ParentInitialized(EntityClass parent, int index)
         {
         }
 

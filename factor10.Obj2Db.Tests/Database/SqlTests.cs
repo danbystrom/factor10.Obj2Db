@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data.SqlClient;
 using System.Linq;
+using factor10.Obj2Db.Tests.Database;
 using factor10.Obj2Db.Tests.TestData;
 using NUnit.Framework;
 
@@ -51,7 +52,7 @@ namespace factor10.Obj2Db.Tests
             export.Run(_data);
             _table = export.TableManager.GetWithAllData().Single();
 
-            _createSql = SqlStuff.GenerateCreateTable(_table, "");
+            _createSql = SqlHelpers.GenerateCreateTable(_table, "");
         }
 
         [Test]
@@ -89,7 +90,7 @@ namespace factor10.Obj2Db.Tests
             if (Environment.MachineName != "DAN_FACTOR10")
                 return;
             var didReachItAllTheWay = false;
-            SqlStuff.WithNewDb("SqlTests", conn =>
+            SqlTestHelpers.WithNewDb("SqlTests", conn =>
             {
                 using (var cmd = new SqlCommand(_createSql, conn))
                     cmd.ExecuteNonQuery();

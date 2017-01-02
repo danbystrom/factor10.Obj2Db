@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Globalization;
 
 namespace factor10.Obj2Db.Formula
@@ -36,6 +37,7 @@ namespace factor10.Obj2Db.Formula
     {
         public abstract double Numeric { get; }
         public abstract string String { get; }
+        public abstract bool IsNull { get; }
     }
 
 
@@ -55,6 +57,7 @@ namespace factor10.Obj2Db.Formula
 
         public override double Numeric => 0;
         public override string String => "";
+        public override bool IsNull => false;
     }
 
 
@@ -86,6 +89,7 @@ namespace factor10.Obj2Db.Formula
         }
 
         public override string String => Value;
+        public override bool IsNull => Value == null;
     }
 
 
@@ -108,6 +112,7 @@ namespace factor10.Obj2Db.Formula
 
         public override double Numeric => Value;
         public override string String => Value.ToString(CultureInfo.InvariantCulture);
+        public override bool IsNull => false;
     }
 
 
@@ -191,13 +196,16 @@ namespace factor10.Obj2Db.Formula
 
     public class RpnItemOperandNumeric2 : RpnItemOperandNumeric
     {
-        private readonly Func<double> _accessor;
+        private readonly Func<double> _valueAccessor;
+        private readonly Func<bool> _isNullAccessor;
 
-        public override double Value => _accessor();
+        public override double Value => _valueAccessor();
+        public override bool IsNull => _isNullAccessor();
 
-        public RpnItemOperandNumeric2(Func<double> accessor)
+        public RpnItemOperandNumeric2(Func<double> valueAccessor, Func<bool> isNullAccessor)
         {
-            _accessor = accessor;
+            _valueAccessor = valueAccessor;
+            _isNullAccessor = isNullAccessor;
         }
 
         public override string ToString()
@@ -211,6 +219,17 @@ namespace factor10.Obj2Db.Formula
     {
         private readonly Func<string> _accessor;
         public override string String => _accessor();
+        public override bool IsNull => String == null;
+
+        public override double Numeric
+        {
+            get
+            {
+                double value;
+                double.TryParse(String, out value);
+                return value;
+            }
+        }
 
         public RpnItemOperandString2(Func<string> accessor)
         {

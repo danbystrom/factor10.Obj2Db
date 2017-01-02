@@ -19,7 +19,7 @@ namespace factor10.Obj2Db
         public readonly AggregationType AggregationType;
         public int SourceIndex { get; private set; }
 
-        private EvaluateRpn _evaluator;
+        private readonly EvaluateRpn _evaluator;
 
         public EntityAggregation(entitySpec entitySpec, Action<string> log)
             : base(entitySpec)
@@ -39,7 +39,7 @@ namespace factor10.Obj2Db
             throw new NotImplementedException();
         }
 
-        public override void ParentInitialized(Entity parent, int index)
+        public override void ParentInitialized(EntityClass parent, int index)
         {
             var agg = Spec.aggregation;
             var siblingEntity = parent.Lists.FirstOrDefault(_ => agg.StartsWith(_.Name + "."));

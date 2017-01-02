@@ -11,7 +11,7 @@ namespace factor10.Obj2Db
         private readonly EntityAggregation[] _fieldAggregators;
         private readonly Action<object[]>[] _aggregations;
 
-        public Aggregator(EntityClass entity, EntityAggregation[] fieldAggregators)
+        public Aggregator(EntityAggregation[] fieldAggregators, int parentEffectiveFieldCount)
         {
             var dic = new Dictionary<AggregationType, Action<int, object>>
             {
@@ -22,7 +22,7 @@ namespace factor10.Obj2Db
                 {AggregationType.Min, (index, value) => _intermediateResult[index] = Math.Min(_intermediateResult[index], obj2Dbl(value, double.MinValue))}
             };
 
-            _intermediateResult = new double[100];
+            _intermediateResult = new double[parentEffectiveFieldCount];
             _fieldAggregators = fieldAggregators;
             var q = new List<Action<object[]>>();
             for (var i = 0; i < fieldAggregators.Length; i++)

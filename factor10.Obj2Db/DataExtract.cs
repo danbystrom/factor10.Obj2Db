@@ -36,31 +36,30 @@ namespace factor10.Obj2Db
         private object[] run(
             EntityWithTable ewt,
             object obj,
-            Guid parentRowId,
+            object parentPrimaryKey,
             int rowIndex)
         {
-            var pk = Guid.NewGuid();
-            var rowResult = new object[ewt.Entity.Fields.Count + 1];
+            var primaryKey = ewt.GetPrimaryKey();
+            var rowResult = new object[ewt.Entity.EffectiveFieldCount];
             rowResult[rowResult.Length - 1] = rowIndex;
             var subRowIndex = 0;
             foreach (var subEwt in ewt.Lists)
             {
                 var enumerable = subEwt.Entity.GetIEnumerable(obj);
-                if (enumerable == null)
-                    continue;
                 var aggregator = subEwt.Aggregator;
                 aggregator?.Begin();
-                foreach (var itm in enumerable)
-                {
-                    var subresult = run(subEwt, itm, pk, subRowIndex++);
-                    aggregator?.Update(subresult);
-                }
+                if (enumerable != null)
+                    foreach (var itm in enumerable)
+                    {
+                        var subresult = run(subEwt, itm, primaryKey, subRowIndex++);
+                        aggregator?.Update(subresult);
+                    }
                 aggregator?.End(rowResult);
             }
             ewt.Entity.AssignValue(rowResult, obj);
             if (!ewt.Entity.PassesFilter(rowResult))
                 return null;
-            ewt.Table?.AddRow(pk, parentRowId, rowResult);
+            ewt.Table?.AddRow(primaryKey, parentPrimaryKey, rowResult);
             return rowResult;
         }
 

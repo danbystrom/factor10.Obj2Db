@@ -3,13 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
-using NUnit.Framework;
 
 namespace factor10.Obj2Db
 {
     public interface ITableManager
     {
-        ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex, int foreignKeyIndex);
+        ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex);
         void Save(ITable table);
         void Flush();
         List<ITable> GetWithAllData();
@@ -37,9 +36,9 @@ namespace factor10.Obj2Db
             return conn;
         }
 
-        public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex, int foreignKeyIndex)
+        public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex)
         {
-            var table = new Table(this, entity, isTopTable, isLeafTable, -1, -1, FlushThreshold);
+            var table = new Table(this, entity, isTopTable, isLeafTable, -1, FlushThreshold);
             _tables.Add(table);
             return table;
         }
@@ -57,7 +56,6 @@ namespace factor10.Obj2Db
                     SqlBulkCopyOptions.UseInternalTransaction,
                     null) {DestinationTableName = table.Name};
                 bulkCopy.WriteToServer(tbl.ExtractDataTable());
-                tbl.Rows.Clear();
             }
         }
 
@@ -87,14 +85,15 @@ namespace factor10.Obj2Db
             {
                 if (_createdTables.Contains(table.Name))
                     return;
-                Console.WriteLine($"Will create '{table.Name}'");
                 _createdTables.Add(table.Name);
                 var prefixedColumns = "";
-                if (!table.IsLeafTable && table.PrimaryKeyIndex<0)
+                if (table.AutomaticPrimaryKey)
                     prefixedColumns = "[_id_] uniqueidentifier not null,";
-                if (!table.IsTopTable && table.ForeignKeyIndex<0)
+                if (!table.IsTopTable)
                     prefixedColumns += "[_fk_] uniqueidentifier not null,";
-                using (var cmd = new SqlCommand(SqlStuff.GenerateCreateTable(table, prefixedColumns), conn))
+                var sql = SqlHelpers.GenerateCreateTable(table, prefixedColumns);
+                Console.WriteLine($"Will create '{table.Name}': {sql}");
+                using (var cmd = new SqlCommand(sql, conn))
                     cmd.ExecuteNonQuery();
             }
         }
@@ -111,11 +110,11 @@ namespace factor10.Obj2Db
     {
         public readonly List<Table> Tables = new List<Table>();
 
-        public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex, int foreignKeyIndex)
+        public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex)
         {
             lock (this)
             {
-                var table = new Table(this, entity, isTopTable, isLeafTable, -1, -1, int.MaxValue);
+                var table = new Table(this, entity, isTopTable, isLeafTable, -1, int.MaxValue);
                 Tables.Add(table);
                 return table;
             }

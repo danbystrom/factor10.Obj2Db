@@ -67,7 +67,7 @@
     <Compile Include="Formula\RpnItems.cs" />
     <Compile Include="Formula\EvaluateRpn.cs" />
     <Compile Include="NameAndType.cs" />
-    <Compile Include="SqlStuff.cs" />
+    <Compile Include="SqlHelpers.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="EntityDictionary.cs" />
     <Compile Include="DataExtract.cs" />

@@ -70,7 +70,9 @@ namespace factor10.Obj2Db.Formula
                     if (entityFields[x].Type == typeof(string))
                         _original[i] = new RpnItemOperandString2(() => _variables[x]?.ToString());
                     else
-                        _original[i] = new RpnItemOperandNumeric2(() => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0);
+                        _original[i] = new RpnItemOperandNumeric2(
+                            () => (_variables[x] as IConvertible)?.ToDouble(null) ?? 0,
+                            () => _variables[x] == null);
                 }
 
         }
@@ -162,8 +164,8 @@ namespace factor10.Obj2Db.Formula
                             break;
                         case Operator.NullCoalescing:
                         case Operator.Question:
-                            {
-                                var op2 = _stack.Pop();
+                        {
+                            var op2 = _stack.Pop();
                             _stack.Pop();
                             _stack.Push(op2);
                             break;
@@ -262,7 +264,7 @@ namespace factor10.Obj2Db.Formula
         {
             var op2 = _stack.Pop();
             var op1 = _stack.Pop();
-            _stack.Push(op1.String != null ? op1 : op2);
+            _stack.Push(!op1.IsNull ? op1 : op2);
         }
 
     }

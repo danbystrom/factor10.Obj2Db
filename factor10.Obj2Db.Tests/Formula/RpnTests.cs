@@ -116,21 +116,28 @@ namespace factor10.Obj2Db.Tests.Formula
         public void TestUnaryMinus()
         {
             var rpn = new Rpn("-1");
-            Assert.AreEqual("1 -", rpn.ToString());
+            Assert.AreEqual("-1", rpn.ToString());
         }
 
         [Test]
         public void TestUnaryMinus2()
         {
             var rpn = new Rpn("--1");
-            Assert.AreEqual("1 - -", rpn.ToString());
+            Assert.AreEqual("1", rpn.ToString());
         }
 
         [Test]
         public void TestUnaryMinus3()
         {
             var rpn = new Rpn("-(-1)");
-            Assert.AreEqual("1 - -", rpn.ToString());
+            Assert.AreEqual("1", rpn.ToString());
+        }
+
+        [Test]
+        public void TestUnaryMinus4()
+        {
+            var rpn = new Rpn("-x");
+            Assert.AreEqual("x -", rpn.ToString());
         }
 
         [Test]

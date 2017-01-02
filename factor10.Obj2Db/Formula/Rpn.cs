@@ -57,10 +57,17 @@ namespace factor10.Obj2Db.Formula
             while (_stack.Any())
             {
                 var item = _stack.Pop();
-                if((item as RpnItemOperator)?.Operator==Operator.LeftP)
+                if ((item as RpnItemOperator)?.Operator == Operator.LeftP)
                     throw new Exception("Open parenthisis");
                 Result.Add(item);
             }
+
+            for (var i = 1; i < Result.Count; i++)
+                if (Result[i - 1] is RpnItemOperandNumeric && (Result[i] as RpnItemOperator)?.Operator == Operator.Negation)
+                {
+                    Result[i - 1] = new RpnItemOperandNumeric(-((RpnItemOperandNumeric) Result[i - 1]).Value);
+                    Result.RemoveAt(i--);
+                }
         }
 
         private void handleItemOperator(RpnItemOperator op)
