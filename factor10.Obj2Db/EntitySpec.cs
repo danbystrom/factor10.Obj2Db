@@ -9,12 +9,15 @@ namespace factor10.Obj2Db
         public string name;
         public string externalname;
         public bool nosave;
+        public bool primarykey;
         public List<entitySpec> fields;
 
         public string aggregation;
         public string aggregationtype;
         public string formula;
         public string where;
+
+        public string type;
 
         public entitySpec()
         {
@@ -63,6 +66,12 @@ namespace factor10.Obj2Db
             return this;
         }
 
+        public entitySpec PrimaryKey()
+        {
+            primarykey = true;
+            return this;
+        }
+
         public entitySpec Add(entitySpec entitySpec)
         {
             if (fields == null)
@@ -88,12 +97,13 @@ namespace factor10.Obj2Db
 
         public entitySpec(Entity entity)
         {
-            name = entity.Spec.name;
-            externalname = entity.Spec.externalname;
-            nosave = entity.Spec.nosave;
+            name = entity.Name;
+            externalname = entity.ExternalName != name ? entity.ExternalName : null;
+            nosave = entity.NoSave;
             aggregation = entity.Spec.aggregation;
             formula = entity.Spec.formula;
             where = entity.Spec.where;
+            type = entity.FieldType?.Name;
             foreach (var e in entity.Fields)
                 Add(new entitySpec(e));
             foreach (var e in entity.Lists)

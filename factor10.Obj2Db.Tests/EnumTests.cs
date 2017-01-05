@@ -64,7 +64,7 @@ namespace factor10.Obj2Db.Tests
     }
 
     [TestFixture]
-    public class TestListOfListInts
+    public class TestListOfListDoubles
     {
         private Dictionary<string, ITable> _tables;
 
@@ -78,7 +78,7 @@ namespace factor10.Obj2Db.Tests
                         .Add("@|zvalue")));
             var x = new Nisse
             {
-                List3 = new List<List<int>> { new List<int> { 15 }, new List<int> { 15, 16, 17 }, new List<int> { 18 } }
+                List3 = new List<List<double>> { new List<double> { 15 }, new List<double> { 15, 16, 17 }, new List<double> { 18 } }
             };
 
             var sb = new StringBuilder();

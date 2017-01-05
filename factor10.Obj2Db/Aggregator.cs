@@ -17,7 +17,6 @@ namespace factor10.Obj2Db
             {
                 {AggregationType.Sum, (index, value) => _intermediateResult[index] += obj2Dbl(value, 0)},
                 {AggregationType.Avg, (index, value) => _intermediateResult[index] += obj2Dbl(value, 0)},
-                {AggregationType.Count, (index, value) => { }},
                 {AggregationType.Max, (index, value) => _intermediateResult[index] = Math.Max(_intermediateResult[index], obj2Dbl(value, double.MinValue))},
                 {AggregationType.Min, (index, value) => _intermediateResult[index] = Math.Min(_intermediateResult[index], obj2Dbl(value, double.MinValue))}
             };
@@ -29,8 +28,16 @@ namespace factor10.Obj2Db
             {
                 var sourceIndex = fieldAggregators[i].SourceIndex;
                 var destinationIndex = i;
-                var action = dic[fieldAggregators[i].AggregationType];
-                q.Add(subresult => action(destinationIndex, (subresult[sourceIndex] as IConvertible)?.ToDouble(null) ?? 0));
+                if (fieldAggregators[i].AggregationType == AggregationType.Count)
+                    q.Add(_ => { });
+                else
+                {
+                    var action = dic[fieldAggregators[i].AggregationType];
+                    if (_fieldAggregators[i].FieldType == typeof(double))
+                        q.Add(subresult => action(destinationIndex, (double) subresult[sourceIndex]));
+                    else  // could be improved, i guess
+                        q.Add(subresult => action(destinationIndex, obj2Dbl(subresult[sourceIndex], 0)));
+                }
             }
             _aggregations = q.ToArray();
         }

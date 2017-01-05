@@ -53,6 +53,7 @@
     <Compile Include="EnumTests.cs" />
     <Compile Include="Formula\CompiledEvaluatorTests.cs" />
     <Compile Include="SchoolBaseTests.cs" />
+    <Compile Include="SchoolAggregationTests.cs" />
     <Compile Include="StarTests.cs" />
     <Compile Include="TestDataStructures\DeepDeclaration.cs" />
     <Compile Include="TestDataStructures\SneakyList.cs" />

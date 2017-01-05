@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -40,7 +41,7 @@ namespace factor10.Obj2Db.Tests
         {
             var result1 = lfiC1.CoherseType(42.1);
             Assert.AreEqual("Double", result1.GetType().Name);
-            Assert.AreEqual(42.1, (double)result1, 1E-10);
+            Assert.AreEqual(42.1, (double) result1, 1E-10);
 
             var result2 = lfiC2.CoherseType(41.8);
             Assert.AreEqual("Int32", result2.GetType().Name);
@@ -52,7 +53,7 @@ namespace factor10.Obj2Db.Tests
 
             var result4 = lfiC4.CoherseType("67.7");
             Assert.AreEqual("Double", result4.GetType().Name);
-            Assert.AreEqual(67.7, (double)result4, 1E-10);
+            Assert.AreEqual(67.7, (double) result4, 1E-10);
         }
 
         [Test]
@@ -60,7 +61,7 @@ namespace factor10.Obj2Db.Tests
         {
             var result1 = lfiS1.CoherseType(42.1);
             Assert.AreEqual("Double", result1.GetType().Name);
-            Assert.AreEqual(42.1, (double)result1, 1E-10);
+            Assert.AreEqual(42.1, (double) result1, 1E-10);
 
             var result2 = lfiS2.CoherseType(41.8);
             Assert.AreEqual("Int32", result2.GetType().Name);
@@ -72,7 +73,7 @@ namespace factor10.Obj2Db.Tests
 
             var result4 = lfiS4.CoherseType("67.7");
             Assert.AreEqual("Double", result4.GetType().Name);
-            Assert.AreEqual(67.7, (double)result4, 1E-10);
+            Assert.AreEqual(67.7, (double) result4, 1E-10);
         }
 
         [Test, Explicit]
@@ -86,38 +87,33 @@ namespace factor10.Obj2Db.Tests
                 var sw = Stopwatch.StartNew();
                 for (var j = 0; j < 1000000; j++)
                     d += (double) lfi1.GetValue(tc);
-                Console.Write (sw.ElapsedMilliseconds + "  ");
+                Console.Write(sw.ElapsedMilliseconds + "  ");
                 sw.Restart();
                 for (var j = 0; j < 1000000; j++)
-                    d += (double)lfi1.GetValueSlower(tc);
+                    d += (double) lfi1.GetValueSlower(tc);
                 Console.WriteLine(sw.ElapsedMilliseconds.ToString());
                 Console.WriteLine();
             }
         }
 
         [Test]
-        public void Yopheidi()
+        public void TestThatAtNameReturnsTheObjectItself()
         {
-            var tc = new TestStructData();
-            var type = tc.GetType();
+            var lfi = new LinkedFieldInfo(typeof(TestClassData), "@");
+            var x = new TestClassData();
+            Assert.IsTrue(ReferenceEquals(x, lfi.GetValue(x)));
+            Assert.IsNull(lfi.IEnumerable);
+            Assert.AreEqual(typeof(TestClassData), lfi.FieldType);
+        }
 
-            FieldInfo fieldInfo = type.GetField("I", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (fieldInfo == null)
-                throw new Exception();
-            var method = new DynamicMethod("", typeof (object), new[] {typeof (object)}, type, true);
-            var il = method.GetILGenerator();
-            il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Castclass, type);
-            if (type.IsValueType)
-                il.Emit(OpCodes.Unbox, type);
-            il.Emit(OpCodes.Ldfld, fieldInfo);
-            if (fieldInfo.FieldType.IsValueType)
-                il.Emit(OpCodes.Box, fieldInfo.FieldType);
-            il.Emit(OpCodes.Ret);
-            var func = (Func<object, object>) method.CreateDelegate(typeof (Func<object, object>));
-
-            tc.I = 42;
-            var q = func(tc);
+        [Test]
+        public void TestThatAtNameReturnsTheObjectItself2()
+        {
+            var lfi = new LinkedFieldInfo(typeof(List<int>), "@");
+            var x = typeof(List<int>);
+            Assert.IsTrue(ReferenceEquals(x, lfi.GetValue(x)));
+            Assert.AreEqual(typeof(IEnumerable<int>), lfi.IEnumerable);
+            Assert.AreEqual(typeof(List<int>), lfi.FieldType);
         }
 
     }

@@ -43,8 +43,13 @@ namespace factor10.Obj2Db
         {
             var agg = Spec.aggregation;
             var siblingEntity = parent.Lists.FirstOrDefault(_ => agg.StartsWith(_.Name + "."));
+            if (siblingEntity == null && AggregationType == AggregationType.Count)
+            {
+                agg += ".@";
+                siblingEntity = parent.Lists.FirstOrDefault(_ => agg.StartsWith(_.Name + "."));
+            }
             if (siblingEntity == null)
-                throw new Exception($"Unable to find entity for aggregation '{agg}'");
+                throw new Exception($"Unable to find entity for aggregation '{Spec.aggregation}'");
             var subFieldName = agg.Substring(siblingEntity.Name.Length + 1);
             var subFieldIndex = siblingEntity.Fields.FindIndex(_ => (_.Name ?? "") == subFieldName);
             if (subFieldIndex < 0)

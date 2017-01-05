@@ -168,11 +168,11 @@ namespace factor10.Obj2Db.Tests
     {
         public List<int> List1;
         public List<int> List2;
-        public List<List<int>> List3;
+        public List<List<double>> List3;
     }
 
     [TestFixture]
-    public class TestGurka
+    public class TestSomeListAggregations
     {
         [Test]
         public void TestThatAggregatedValuesCanBeUsedInFormulas()
@@ -190,7 +190,7 @@ namespace factor10.Obj2Db.Tests
             {
                 List1 = new List<int> {5, 6, 7},
                 List2 = new List<int> {20},
-                List3 = new List<List<int>> {new List<int> {15}, new List<int> {15, 16, 17}, new List<int> {18}}
+                List3 = new List<List<double>> {new List<double> {15.0}, new List<double> {15.0, 16, 17}, new List<double> {18.0}}
             };
 
             var export = new DataExtract<Nisse>(spec);
@@ -204,7 +204,7 @@ namespace factor10.Obj2Db.Tests
     }
 
     [TestFixture]
-    public class TestGurka2
+    public class TestAggregationOfAnIntList
     {
         private ITable _topTable;
         private ITable _subTable;
@@ -283,7 +283,7 @@ namespace factor10.Obj2Db.Tests
                         .Add("@|zvalue")));
             var x = new Nisse
             {
-                List3 = new List<List<int>> {new List<int> {15}, new List<int> {15, 16, 17}, new List<int> {18}}
+                List3 = new List<List<double>> {new List<double> {15}, new List<double> {15, 16, 17}, new List<double> {18}}
             };
 
             var sb = new StringBuilder();
