@@ -27,7 +27,7 @@ namespace factor10.Obj2Db
             var fieldsNameAndTypes = parent.Fields.Select(_ => _.NameAndType).ToList();
             fieldsNameAndTypes.Add(new NameAndType("#index", typeof(int)));
             Evaluator = new EvaluateRpn(new Rpn(Spec.formula), fieldsNameAndTypes);
-            FieldType = Evaluator.TypeEval() is RpnItemOperandNumeric
+            FieldType = Evaluator.ResultingType is RpnItemOperandNumeric
                 ? typeof(double)
                 : typeof(string);
         }

@@ -52,6 +52,7 @@
     <Compile Include="Database\SqlTestHelpers.cs" />
     <Compile Include="EnumTests.cs" />
     <Compile Include="Formula\CompiledEvaluatorTests.cs" />
+    <Compile Include="InverseEntityTests.cs" />
     <Compile Include="SchoolBaseTests.cs" />
     <Compile Include="SchoolAggregationTests.cs" />
     <Compile Include="StarTests.cs" />

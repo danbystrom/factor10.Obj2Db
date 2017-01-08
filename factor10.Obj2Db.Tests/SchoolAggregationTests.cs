@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using factor10.Obj2Db.Tests.TestData;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace factor10.Obj2Db.Tests
@@ -21,9 +22,9 @@ namespace factor10.Obj2Db.Tests
         [OneTimeSetUp]
         public void TestSchoolExample()
         {
-            var export = new DataExtract<School>(_spec);
-            export.Run(School);
-            var tables = export.TableManager.GetWithAllData();
+            var dataextract = new DataExtract<School>(_spec);
+            dataextract.Run(School);
+            var tables = dataextract.TableManager.GetWithAllData();
             Assert.AreEqual(2, tables.Count);
             _classesTable = tables.Single(_ => _.Name == "Classes");
         }
@@ -32,6 +33,15 @@ namespace factor10.Obj2Db.Tests
         public void TestThatThereAreSixClasses()
         {
             Assert.AreEqual(6, _classesTable.Rows.Count);
+
+            var x = JsonConvert.SerializeObject(_spec, Formatting.None,
+                new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    DefaultValueHandling = DefaultValueHandling.Ignore,
+
+                });
+
         }
 
         [Test]

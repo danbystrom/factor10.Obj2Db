@@ -26,6 +26,7 @@ namespace factor10.Obj2Db.Formula
         Negation,
         Not,
         NullCoalescing,
+        Concat
     }
 
     public abstract class RpnItem
@@ -139,6 +140,7 @@ namespace factor10.Obj2Db.Formula
             "-",
             "!",
             "??",
+            "++"
         };
 
         public readonly Operator Operator;
@@ -194,7 +196,7 @@ namespace factor10.Obj2Db.Formula
         }
     }
 
-    public class RpnItemOperandNumeric2 : RpnItemOperandNumeric
+    public class RpnItemOperandNumericVariable : RpnItemOperandNumeric
     {
         private readonly Func<double> _valueAccessor;
         private readonly Func<bool> _isNullAccessor;
@@ -202,7 +204,7 @@ namespace factor10.Obj2Db.Formula
         public override double Value => _valueAccessor();
         public override bool IsNull => _isNullAccessor();
 
-        public RpnItemOperandNumeric2(Func<double> valueAccessor, Func<bool> isNullAccessor)
+        public RpnItemOperandNumericVariable(Func<double> valueAccessor, Func<bool> isNullAccessor)
         {
             _valueAccessor = valueAccessor;
             _isNullAccessor = isNullAccessor;
@@ -215,7 +217,15 @@ namespace factor10.Obj2Db.Formula
 
     }
 
-    public class RpnItemOperandString2 : RpnItemOperandString
+    public class RpnItemOperandNumericNull : RpnItemOperandNumericVariable
+    {
+        public RpnItemOperandNumericNull()
+            : base(() => 0, () => true)
+        {
+        }
+    }
+
+    public class RpnItemOperandStringVariable : RpnItemOperandString
     {
         private readonly Func<string> _accessor;
         public override string String => _accessor();
@@ -231,7 +241,7 @@ namespace factor10.Obj2Db.Formula
             }
         }
 
-        public RpnItemOperandString2(Func<string> accessor)
+        public RpnItemOperandStringVariable(Func<string> accessor)
         {
             _accessor = accessor;
         }

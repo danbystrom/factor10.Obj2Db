@@ -258,6 +258,30 @@ namespace factor10.Obj2Db.Tests.Formula
             Assert.IsTrue(value.IsNull);
         }
 
+        [Test]
+        public void TesStringConcat1()
+        {
+            Assert.AreEqual("kalleanka", new EvaluateRpn(new Rpn("'kalle'+'anka'")).Eval().String);
+        }
+
+        [Test]
+        public void TesStringConcat2()
+        {
+            Assert.AreEqual("kalle3", new EvaluateRpn(new Rpn("'kalle'+3")).Eval().String);
+        }
+
+        [Test]
+        public void TesStringConcat3()
+        {
+            Assert.AreEqual("1anka", new EvaluateRpn(new Rpn("1+'anka'")).Eval().String);
+        }
+
+        [Test]
+        public void TesStringConcat4()
+        {
+            Assert.AreEqual("33", new EvaluateRpn(new Rpn("1+2+'3'")).Eval().String);
+        }
+
         //[TestCase(0, "kalle", "nisse", "kalle")]
         //[TestCase(0, null, "nisse", null)]
         //[TestCase(1, "kalle", "nisse", "")]

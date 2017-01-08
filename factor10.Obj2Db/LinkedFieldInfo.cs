@@ -178,7 +178,7 @@ namespace factor10.Obj2Db
         public static List<NameAndType> GetAllFieldsAndProperties(Type type)
         {
             var list = new List<NameAndType>();
-            if (type == typeof(string) || type.IsArray || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)))
+            if (type == typeof(string) || type==typeof(DateTime) || type.IsArray || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)))
                 return list;
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(_ => _.GetIndexParameters().Length == 0);
             var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.IsSpecialName);

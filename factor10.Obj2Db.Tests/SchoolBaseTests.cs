@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace factor10.Obj2Db.Tests
 {
-    [TestFixture]
     public class SchoolBaseTests
     {
         protected School School;
