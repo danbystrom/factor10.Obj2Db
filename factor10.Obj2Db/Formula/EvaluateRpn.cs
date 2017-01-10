@@ -10,13 +10,13 @@ namespace factor10.Obj2Db.Formula
         {
             public readonly int NumberOfArguments; // -1 variable
             public readonly Action<int> Evaluate;
-//            public Action<int> TypeEvaluate;
+            public Type Type;
 
-            public FunctionDescriptor(int numberOfArguments, Action<int> evaluate, Action<int> typeEvaluate)
+            public FunctionDescriptor(int numberOfArguments, Action<int> evaluate, Type type)
             {
                 NumberOfArguments = numberOfArguments;
                 Evaluate = evaluate;
-//                TypeEvaluate = typeEvaluate;
+                Type = type;
             }
 
         }
@@ -36,13 +36,13 @@ namespace factor10.Obj2Db.Formula
         {
             _functions = new Dictionary<string, FunctionDescriptor>
             {
-                {"min", new FunctionDescriptor(-1, funcMin, null)},
-                {"max", new FunctionDescriptor(-1, funcMax, null)},
-                {"first", new FunctionDescriptor(-1, funcFirst, null)},
-                {"str", new FunctionDescriptor(1, _ => push(_stack.Pop().String), null)},
-                {"val", new FunctionDescriptor(1, _ => push(_stack.Pop().Numeric), null)},
-                {"int", new FunctionDescriptor(1, _ => push((int) _stack.Pop().Numeric), null)},
-                {"len", new FunctionDescriptor(1, _ => push(_stack.Pop().String?.Length), null)},
+                {"min", new FunctionDescriptor(-1, funcMin, typeof(double))},
+                {"max", new FunctionDescriptor(-1, funcMax, typeof(double))},
+                {"first", new FunctionDescriptor(-1, funcFirst, typeof(string))},
+                {"str", new FunctionDescriptor(1, _ => push(_stack.Pop().String), typeof(string))},
+                {"val", new FunctionDescriptor(1, _ => push(_stack.Pop().Numeric), typeof(double))},
+                {"int", new FunctionDescriptor(1, _ => push((int) _stack.Pop().Numeric), typeof(double))},
+                {"len", new FunctionDescriptor(1, _ => push(_stack.Pop().String?.Length), typeof(double))},
             };
 
             _original = rpn.Result.ToList();
@@ -218,7 +218,12 @@ namespace factor10.Obj2Db.Formula
                 var itemFunction = item as RpnItemFunction;
                 if (itemFunction != null)
                 {
-                    _functions[itemFunction.Name].Evaluate(itemFunction.ArgumentCount);
+                    for (var j = 0; j < itemFunction.ArgumentCount; j++)
+                        _stack.Pop();
+                    if(_functions[itemFunction.Name].Type==typeof(string))
+                        push("");
+                    else
+                        push(0);
                     continue;
                 }
 

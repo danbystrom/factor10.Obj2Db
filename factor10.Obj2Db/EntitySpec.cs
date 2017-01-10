@@ -103,7 +103,7 @@ namespace factor10.Obj2Db
             aggregation = entity.Spec.aggregation;
             formula = entity.Spec.formula;
             where = entity.Spec.where;
-            type = entity.FieldType?.Name;
+            type = LinkedFieldInfo.FriendlyTypeName(entity.FieldType);
             foreach (var e in entity.Fields)
                 Add(new entitySpec(e));
             foreach (var e in entity.Lists)

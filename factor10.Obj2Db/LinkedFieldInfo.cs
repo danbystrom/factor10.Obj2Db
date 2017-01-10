@@ -79,10 +79,10 @@ namespace factor10.Obj2Db
 
         public static Type CheckForIEnumerable(Type type)
         {
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                 return type;
-            return type != typeof (string) && type != typeof (byte[]) // a string implements IEnumerable<Char> - but forget that
-                ? type.GetInterfaces().SingleOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+            return type != typeof(string) && type != typeof(byte[]) // a string implements IEnumerable<Char> - but forget that
+                ? type.GetInterfaces().SingleOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                 : null;
         }
 
@@ -120,7 +120,7 @@ namespace factor10.Obj2Db
 
         private Func<object, object> generateFastFetcher(Type sourceObjectType, Type resultType, Action<ILGenerator> ilGenAction)
         {
-            var method = new DynamicMethod("", typeof(object), new[] { typeof(object) }, sourceObjectType, true);
+            var method = new DynamicMethod("", typeof(object), new[] {typeof(object)}, sourceObjectType, true);
             var il = method.GetILGenerator();
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Castclass, sourceObjectType);
@@ -130,7 +130,7 @@ namespace factor10.Obj2Db
             if (resultType.IsValueType)
                 il.Emit(OpCodes.Box, resultType);
             il.Emit(OpCodes.Ret);
-            return (Func<object, object>)method.CreateDelegate(typeof(Func<object, object>));
+            return (Func<object, object>) method.CreateDelegate(typeof(Func<object, object>));
         }
 
         public static LinkedFieldInfo Null(Type type)
@@ -178,7 +178,8 @@ namespace factor10.Obj2Db
         public static List<NameAndType> GetAllFieldsAndProperties(Type type)
         {
             var list = new List<NameAndType>();
-            if (type == typeof(string) || type==typeof(DateTime) || type.IsArray || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)))
+            if (type == typeof(string) || type == typeof(DateTime) || type.IsArray ||
+                (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)))
                 return list;
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(_ => _.GetIndexParameters().Length == 0);
             var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(_ => !_.IsSpecialName);
@@ -189,11 +190,21 @@ namespace factor10.Obj2Db
                 {
                     var genTypDef = type.GetGenericTypeDefinition();
                     if (genTypDef == typeof(List<>) || genTypDef == typeof(IList<>))
-                        list.RemoveAll(_ => new[] { "Capacity", "Count" }.Contains(_.Name));
+                        list.RemoveAll(_ => new[] {"Capacity", "Count"}.Contains(_.Name));
                     if (genTypDef == typeof(Dictionary<,>) || genTypDef == typeof(IDictionary<,>))
-                        list.RemoveAll(_ => new[] { "Comparer", "Count", "Keys", "Values" }.Contains(_.Name));
+                        list.RemoveAll(_ => new[] {"Comparer", "Count", "Keys", "Values"}.Contains(_.Name));
                 }
             return list;
+        }
+
+        public static string FriendlyTypeName(Type type)
+        {
+            if (type == null)
+                return null;
+            var innerType = StripNullable(type);
+            return innerType == type
+                ? type.Name
+                : innerType.Name + "?";
         }
 
     }
