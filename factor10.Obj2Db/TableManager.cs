@@ -38,14 +38,14 @@ namespace factor10.Obj2Db
 
         public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex)
         {
-            var table = new Table(this, entity, isTopTable, isLeafTable, -1, FlushThreshold);
+            var table = new SqlTable(this, entity, isTopTable, isLeafTable, -1, FlushThreshold);
             _tables.Add(table);
             return table;
         }
 
         public void Save(ITable table)
         {
-            var tbl = (Table) table;
+            var tbl = (SqlTable) table;
             using (var conn = getOpenConnection())
             {
                 ensureTableCreated(conn, tbl);
@@ -55,7 +55,7 @@ namespace factor10.Obj2Db
                     SqlBulkCopyOptions.FireTriggers |
                     SqlBulkCopyOptions.UseInternalTransaction,
                     null) {DestinationTableName = table.Name};
-                bulkCopy.WriteToServer(tbl.ExtractDataTable());
+                tbl.WithDataTable(bulkCopy.WriteToServer);
             }
         }
 
@@ -79,7 +79,7 @@ namespace factor10.Obj2Db
             throw new NotImplementedException();
         }
 
-        private void ensureTableCreated(SqlConnection conn, Table table)
+        private void ensureTableCreated(SqlConnection conn, SqlTable table)
         {
             lock (this)
             {
@@ -108,13 +108,13 @@ namespace factor10.Obj2Db
 
     public class InMemoryTableManager : ITableManager
     {
-        public readonly List<Table> Tables = new List<Table>();
+        public readonly List<ITable> Tables = new List<ITable>();
 
         public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex)
         {
             lock (this)
             {
-                var table = new Table(this, entity, isTopTable, isLeafTable, -1, int.MaxValue);
+                var table = new InMemoryTable(entity, isTopTable, isLeafTable, -1);
                 Tables.Add(table);
                 return table;
             }
@@ -135,10 +135,11 @@ namespace factor10.Obj2Db
             foreach (var z in joined)
             {
                 var tables = z.ToList();
+                var t = new InMemoryTable(tables[0]);
                 for (var i = 1; i < tables.Count; i++)
                     foreach (var tr in tables[i].Rows)
-                        tables[0].Rows.Add(tr);
-                result.Add(tables[0]);
+                        t.Rows.Add(tr);
+                result.Add(t);
             }
             foreach (var t in result)
                 foreach (var row in t.Rows)

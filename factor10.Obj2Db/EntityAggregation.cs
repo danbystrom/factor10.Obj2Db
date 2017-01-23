@@ -56,7 +56,7 @@ namespace factor10.Obj2Db
                 throw new Exception();
             SourceIndex = subFieldIndex;
             siblingEntity.AggregationFields.Add(this);
-            FieldType = siblingEntity.Fields[subFieldIndex].FieldType;
+            FieldType = AggregationType != AggregationType.Count ? siblingEntity.Fields[subFieldIndex].FieldType : typeof(int);
         }
 
         public object Evaluate(object obj)

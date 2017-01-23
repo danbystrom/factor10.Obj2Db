@@ -11,8 +11,6 @@ namespace factor10.Obj2Db
         public readonly EntityClass TopEntity;
         public readonly ITableManager TableManager;
 
-        private int _nextRowIndex;
-
         public DataExtract(entitySpec entitySpec, ITableManager tableManager = null, Action<string> log = null)
         {
             TopEntity = Entity.Create(entitySpec, typeof(T), log);
@@ -27,9 +25,10 @@ namespace factor10.Obj2Db
         public void Run(IEnumerable<T> objs)
         {
             var ed = new ConcurrentEntityTableDictionary(TableManager, TopEntity);
+            var nextRowIndex = 0;
             objs.AsParallel().ForAll(_ =>
             {
-                run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty, Interlocked.Increment(ref _nextRowIndex));
+                run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty, Interlocked.Increment(ref nextRowIndex));
             });
             TableManager.Flush();
         }

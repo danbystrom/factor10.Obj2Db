@@ -314,10 +314,10 @@ namespace factor10.Obj2Db.Tests
             .Add("MaxList2").Aggregates("List2.@", "max")
             .Add("MinList1").Aggregates("List1.@", "min")
             .Add("MinList2").Aggregates("List2.@", "min")
-            .Add("MinList1").Aggregates("List1.@", "avg")
-            .Add("MinList2").Aggregates("List2.@", "avg")
-            .Add("MinList1").Aggregates("List1.@", "count")
-            .Add("MinList2").Aggregates("List2.@", "count")
+            .Add("AvgList1").Aggregates("List1.@", "avg")
+            .Add("AvgList2").Aggregates("List2.@", "avg")
+            .Add("CountList1").Aggregates("List1.@", "count")
+            .Add("CountList2").Aggregates("List2.@", "count")
             .Add(entitySpec.Begin("List1").Where("@!=7"))
             .Add(entitySpec.Begin("List2").Where("@!=7"));
 
@@ -372,12 +372,12 @@ namespace factor10.Obj2Db.Tests
                 0,
                 0,
                 0,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                DBNull.Value,
+                DBNull.Value,
+                DBNull.Value,
+                DBNull.Value,
+                DBNull.Value,
+                DBNull.Value,
                 0,
                 0
             }, t.Rows.Single().Columns);
@@ -397,10 +397,10 @@ namespace factor10.Obj2Db.Tests
             .Add("MaxList2").Aggregates("List2.@", "max").Formula("@??45")
             .Add("MinList1").Aggregates("List1.@", "min").Formula("@??46")
             .Add("MinList2").Aggregates("List2.@", "min").Formula("@??47")
-            .Add("MinList1").Aggregates("List1.@", "avg").Formula("@??48")
-            .Add("MinList2").Aggregates("List2.@", "avg").Formula("@??49")
-            .Add("MinList1").Aggregates("List1.@", "count").Formula("@*2")
-            .Add("MinList2").Aggregates("List2.@", "count").Formula("@??50")
+            .Add("AvgList1").Aggregates("List1.@", "avg").Formula("@??48")
+            .Add("AvgList2").Aggregates("List2.@", "avg").Formula("@??49")
+            .Add("CountList1").Aggregates("List1.@", "count").Formula("@*2")
+            .Add("CountList2").Aggregates("List2.@", "count").Formula("@??50")
             .Add(entitySpec.Begin("List1").Where("@!=7"))
             .Add(entitySpec.Begin("List2").Where("@!=7"));
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using factor10.Obj2Db.Tests.TestData;
@@ -159,7 +160,9 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatTheTopTableHasCorrectData()
         {
-            CollectionAssert.AreEqual(new object[] {78, 0, 0, 0, null, null, null, null, null, null, null, null, 0, 0, 0, 79}, _topTable.Rows.Single().Columns);
+            CollectionAssert.AreEqual(new object[] {78, 0, 0, 0,
+                DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value,
+                0, 0, 0, 79}, _topTable.Rows.Single().Columns);
         }
 
         [Test]

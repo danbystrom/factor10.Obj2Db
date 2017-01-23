@@ -1,4 +1,5 @@
 ﻿using factor10.Obj2Db.Tests.TestData;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace factor10.Obj2Db.Tests
@@ -9,6 +10,14 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void Test()
         {
+            var y = entitySpec.Begin().Add("*");
+            var z = JsonConvert.SerializeObject(y, Formatting.None,
+                new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    DefaultValueHandling = DefaultValueHandling.Ignore,
+
+                });
             var x = new DataExtract<AllPropertyTypes>(entitySpec.Begin().Add("*"));
             var inverse = new entitySpec(x.TopEntity);
         }

@@ -68,8 +68,8 @@ namespace factor10.Obj2Db
             {
                 subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
                 foreach (var subEntity in expansionOverStar(log, type, subEntitySpec, new HashSet<Type>()))
-                    if(subEntity is EntityClass)
-                        Lists.Add((EntityClass)subEntity);
+                    if (subEntity is EntityClass)
+                        Lists.Add((EntityClass) subEntity);
                     else
                         Fields.Add(subEntity);
             }
