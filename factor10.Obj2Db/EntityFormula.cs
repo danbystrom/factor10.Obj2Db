@@ -14,7 +14,7 @@ namespace factor10.Obj2Db
             log?.Invoke($"EntityFormula ctor: {entitySpec.name}/{entitySpec.fields?.Count ?? 0} - {entitySpec.formula} ");
         }
 
-        public override void AssignValue(object[] result, object obj)
+        public override void AssignResult(object[] result, object obj)
         {
             var itm = Evaluator.Eval(result);
             result[ResultSetIndex] = FieldType == typeof(double)

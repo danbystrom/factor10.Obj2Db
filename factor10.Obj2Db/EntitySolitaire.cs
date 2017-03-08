@@ -11,7 +11,7 @@ namespace factor10.Obj2Db
             FieldType = FieldInfo.FieldType;
         }
 
-        public override void AssignValue(object[] result, object obj)
+        public override void AssignResult(object[] result, object obj)
         {
             result[ResultSetIndex] = FieldInfo.GetValue(obj);
         }

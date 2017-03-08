@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Globalization;
 
 namespace factor10.Obj2Db.Formula
@@ -196,59 +195,33 @@ namespace factor10.Obj2Db.Formula
         }
     }
 
-    public class RpnItemOperandNumericVariable : RpnItemOperandNumeric
+
+    public class RpnItemOperandNumericNull : RpnItemOperandNumeric
     {
-        private readonly Func<double> _valueAccessor;
-        private readonly Func<bool> _isNullAccessor;
-
-        public override double Value => _valueAccessor();
-        public override bool IsNull => _isNullAccessor();
-
-        public RpnItemOperandNumericVariable(Func<double> valueAccessor, Func<bool> isNullAccessor)
-        {
-            _valueAccessor = valueAccessor;
-            _isNullAccessor = isNullAccessor;
-        }
-
-        public override string ToString()
-        {
-            return String;
-        }
-
+        public override bool IsNull => true;
     }
 
-    public class RpnItemOperandNumericNull : RpnItemOperandNumericVariable
+    public class RpnIndexedVariable : RpnItem
     {
-        public RpnItemOperandNumericNull()
-            : base(() => 0, () => true)
+        public readonly int Index;
+        public readonly bool IsNumeric;
+
+        public RpnIndexedVariable(int index, bool isNumeric)
         {
+            Index = index;
+            IsNumeric = isNumeric;
         }
-    }
 
-    public class RpnItemOperandStringVariable : RpnItemOperandString
-    {
-        private readonly Func<string> _accessor;
-        public override string String => _accessor();
-        public override bool IsNull => String == null;
-
-        public override double Numeric
+        public RpnItemOperand Resolve(object[] variables)
         {
-            get
+            if (IsNumeric)
             {
-                double value;
-                double.TryParse(String, out value);
-                return value;
+                var ic = variables[Index] as IConvertible;
+                return ic != null
+                    ? new RpnItemOperandNumeric(ic.ToDouble(null))
+                    : new RpnItemOperandNumericNull();
             }
-        }
-
-        public RpnItemOperandStringVariable(Func<string> accessor)
-        {
-            _accessor = accessor;
-        }
-
-        public override string ToString()
-        {
-            return String;
+            return new RpnItemOperandString(variables[Index]?.ToString());
         }
 
     }

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection;
-using System.Reflection.Emit;
 using NUnit.Framework;
 
 namespace factor10.Obj2Db.Tests
@@ -10,6 +8,7 @@ namespace factor10.Obj2Db.Tests
     [TestFixture]
     public class LinkedFieldInfoTests
     {
+#pragma warning disable 649
         private class TestClassData
         {
             public double D;

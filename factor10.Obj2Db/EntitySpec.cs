@@ -85,6 +85,11 @@ namespace factor10.Obj2Db
             return fields != null && fields.Any();
         }
 
+        public bool AnyNotStar()
+        {
+            return Any() && !(fields.Count == 1 && fields.First().name == "*");
+        }
+
         public static implicit operator entitySpec(string name)
         {
             var split = name.Split('|');

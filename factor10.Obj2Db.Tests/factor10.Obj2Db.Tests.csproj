@@ -48,14 +48,17 @@
   <ItemGroup>
     <Compile Include="AggregationTests.cs" />
     <Compile Include="CompilerTests.cs" />
+    <Compile Include="Database\SqlDictionaryTests.cs" />
     <Compile Include="Database\SqlBlobTests.cs" />
     <Compile Include="Database\SqlSchoolTests.cs" />
     <Compile Include="Database\SqlTestHelpers.cs" />
     <Compile Include="EnumTests.cs" />
     <Compile Include="Formula\CompiledEvaluatorTests.cs" />
+    <Compile Include="Formula\ConcurrencyTests.cs" />
     <Compile Include="InverseEntityTests.cs" />
     <Compile Include="SchoolBaseTests.cs" />
     <Compile Include="SchoolAggregationTests.cs" />
+    <Compile Include="StarTests2.cs" />
     <Compile Include="StarTests.cs" />
     <Compile Include="TestDataStructures\DeepDeclaration.cs" />
     <Compile Include="TestDataStructures\SneakyList.cs" />

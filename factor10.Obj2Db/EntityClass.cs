@@ -123,7 +123,8 @@ namespace factor10.Obj2Db
                         foreach (var q in expansionOverStar(log, masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
                             yield return q;
                     else
-                        yield return create(propName, masterType, log);
+                        yield return create(entitySpec.Begin(propName).Add("*"), masterType, log);
+                        //yield return create(propName, masterType, log);
                 }
             }
 
@@ -145,10 +146,10 @@ namespace factor10.Obj2Db
             return (IEnumerable)FieldInfo.GetValue(obj);
         }
 
-        public override void AssignValue(object[] result, object obj)
+        public override void AssignResult(object[] result, object obj)
         {
             foreach (var entity in _fieldsThenFormulas)
-                entity.AssignValue(result, obj);
+                entity.AssignResult(result, obj);
         }
 
     }

@@ -57,13 +57,13 @@ namespace factor10.Obj2Db
             var fieldInfo = new LinkedFieldInfo(type, entitySpec.name);
             if (fieldInfo.IEnumerable != null)
                 return new EntityClass(entitySpec, fieldInfo.IEnumerable.GetGenericArguments()[0], fieldInfo, log);
-            if (!entitySpec.Any())
+            if (!entitySpec.AnyNotStar())
                 return new EntityPlainField(entitySpec, fieldInfo, log);
 
             throw new Exception("Unknown error");
         }
 
-        public virtual void AssignValue(object[] result, object obj)
+        public virtual void AssignResult(object[] result, object obj)
         {
         }
 

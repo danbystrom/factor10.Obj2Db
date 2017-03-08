@@ -34,7 +34,7 @@ namespace factor10.Obj2Db
                 {new NameAndType("@", typeof(double))});
         }
 
-        public override void AssignValue(object[] result, object obj)
+        public override void AssignResult(object[] result, object obj)
         {
             throw new NotImplementedException();
         }

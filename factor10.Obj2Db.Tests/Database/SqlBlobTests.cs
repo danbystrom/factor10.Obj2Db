@@ -12,9 +12,11 @@ namespace factor10.Obj2Db.Tests.Database
     {
         private class WithBlobs
         {
+#pragma warning disable 649
             public byte[] Blob1;
             public byte[] Blob2;
             public byte[] Blob3;
+#pragma warning restore 649
         }
 
         [Test]

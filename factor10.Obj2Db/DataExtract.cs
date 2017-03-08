@@ -56,7 +56,7 @@ namespace factor10.Obj2Db
                     }
                 aggregator?.End(rowResult);
             }
-            ewt.Entity.AssignValue(rowResult, obj);
+            ewt.Entity.AssignResult(rowResult, obj);
             if (!ewt.Entity.PassesFilter(rowResult))
                 return null;
             ewt.Table?.AddRow(primaryKey, foreignKey, rowResult);

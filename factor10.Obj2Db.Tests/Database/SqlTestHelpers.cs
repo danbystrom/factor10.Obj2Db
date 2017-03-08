@@ -22,6 +22,8 @@ namespace factor10.Obj2Db.Tests.Database
 
         public static void WithNewDb(string dbName, Action<SqlConnection> work)
         {
+            if (Environment.MachineName != "DAN_FACTOR10")
+                return;
             CreateAndDropDatabase(dbName, true);
             using (var conn = new SqlConnection(ConnectionString(dbName)))
                 try
