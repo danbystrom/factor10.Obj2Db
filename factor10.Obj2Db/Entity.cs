@@ -31,9 +31,10 @@ namespace factor10.Obj2Db
             NoSave = entitySpec.nosave;
         }
 
-        public static EntityClass Create(entitySpec entitySpec, Type type, Action<string> log)
+        public static EntityClass Create(EntityClass parent, entitySpec entitySpec, Type type, Action<string> log)
         {
             return new EntityClass(
+                parent,
                 new entitySpec
                 {
                     name = entitySpec.name ?? type.Name,
@@ -45,7 +46,7 @@ namespace factor10.Obj2Db
                 log);
         }
 
-        protected static Entity create(entitySpec entitySpec, Type type, Action<string> log)
+        protected static Entity create(EntityClass parent, entitySpec entitySpec, Type type, Action<string> log)
         {
             log?.Invoke($"create: {type.Name} - {entitySpec.name}");
 
@@ -56,7 +57,7 @@ namespace factor10.Obj2Db
 
             var fieldInfo = new LinkedFieldInfo(type, entitySpec.name);
             if (fieldInfo.IEnumerable != null)
-                return new EntityClass(entitySpec, fieldInfo.IEnumerable.GetGenericArguments()[0], fieldInfo, log);
+                return new EntityClass(parent, entitySpec, fieldInfo.IEnumerable.GetGenericArguments()[0], fieldInfo, log);
             if (!entitySpec.AnyNotStar())
                 return new EntityPlainField(entitySpec, fieldInfo, log);
 
@@ -87,6 +88,8 @@ namespace factor10.Obj2Db
                 ? FieldInfo.CoherseType(obj)
                 : LinkedFieldInfo.CoherseType(FieldType, obj);
         }
+
+        public virtual bool IsBasedOnAggregation => false;
 
     }
 

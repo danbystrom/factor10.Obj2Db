@@ -43,7 +43,7 @@ namespace factor10.Obj2Db.Tests.Database
                 dataExtract.Run(testObj);
                 var result = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM WithDictionary");
                 Assert.AreEqual(1, result.NameAndTypes.Length);
-                result = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM AnnoyingThingDic");
+                result = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM WithDictionary_AnnoyingThingDic");
                 Assert.AreEqual(2, result.NameAndTypes.Length);
             });
         }

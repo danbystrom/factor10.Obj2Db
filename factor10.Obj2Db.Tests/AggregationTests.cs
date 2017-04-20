@@ -14,20 +14,19 @@ namespace factor10.Obj2Db.Tests
     {
         private List<ITable> _tables;
         private ITable _topTable;
-        private ITable _selfListTable;
+        private EntityClass _topEntity;
 
         [OneTimeSetUp]
         public void Test()
         {
             var spec = entitySpec.Begin()
-                    .Add("FirstName")
-                    .Add("AggregatedX").Aggregates("Structs.X")
-                    .Add(entitySpec.Begin("Structs").NotSaved()
-                        .Add("X"))
-                    .Add(entitySpec.Begin("Self.SelfList")
-                        .Add("Double"))
-                    .Add("AggregatedDouble").Aggregates("Self.SelfList.Double")
-                ;
+                .Add("FirstName")
+                .Add("AggregatedX").Aggregates("Structs.X")
+                .Add(entitySpec.Begin("Structs").NotSaved()
+                    .Add("X"))
+                .Add(entitySpec.Begin("Self.SelfList")
+                    .Add("Double"))
+                .Add("AggregatedDouble").Aggregates("Self.SelfList.Double");
 
             var theTop = new TheTop
             {
@@ -41,11 +40,11 @@ namespace factor10.Obj2Db.Tests
             };
             var t = new InMemoryTableManager();
             var export = new DataExtract<TheTop>(spec, t);
+            _topEntity = export.TopEntity;
             export.Run(theTop);
             _tables = export.TableManager.GetWithAllData();
 
             _topTable = _tables.Single(_ => _.Name == "TheTop");
-            _selfListTable = _tables.Single(_ => _.Name == "SelfSelfList");
         }
 
         [Test]
@@ -55,7 +54,7 @@ namespace factor10.Obj2Db.Tests
         }
 
         [Test]
-        public void TestThatAllFieldsAreInToTable()
+        public void TestThatAllFieldsAreInTable()
         {
             CollectionAssert.AreEqual(new[] {"FirstName", "AggregatedX", "AggregatedDouble"}, _topTable.Fields.Select(_ => _.Name));
         }
@@ -73,7 +72,7 @@ namespace factor10.Obj2Db.Tests
         }
 
         [Test]
-        public void TestThatDoubleAggregatedCorrectly()
+        public void TestThatDoubleAggregatesCorrectly()
         {
             Assert.AreEqual(42 + 43, _topTable.Rows.Single().Columns[2]);
         }
@@ -84,21 +83,28 @@ namespace factor10.Obj2Db.Tests
             Assert.AreEqual("Double", _topTable.Rows.Single().Columns[2].GetType().Name);
         }
 
+        [Test]
+        public void TestThatIsBasedOnAggregationIsSet()
+        {
+            CollectionAssert.AreEqual(new[] {false, true, true}, _topEntity.Fields.Select(_ => _.IsBasedOnAggregation));
+        }
+
     }
 
     public class Aggregation2Tests
     {
         private List<ITable> _tables;
         private ITable _topTable;
+        private EntityClass _topEntity;
 
         [OneTimeSetUp]
         public void Test()
         {
             var spec = entitySpec.Begin()
-                    .Add(entitySpec.Begin("SelfList").NotSaved()
-                        .Add("Double"))
-                    .Add("AggregatedDouble").Aggregates("SelfList.Double")
-                ;
+                .Add(entitySpec.Begin("SelfList").NotSaved()
+                    .Add("Double"))
+                .Add("AggregatedDouble").Aggregates("SelfList.Double")
+                .Add("FormulaOnAggregate").Formula("2*AggregatedDouble");
 
             var theTop = new TheTop
             {
@@ -106,6 +112,7 @@ namespace factor10.Obj2Db.Tests
             };
             var t = new InMemoryTableManager();
             var export = new DataExtract<TheTop>(spec, t);
+            _topEntity = export.TopEntity;
             export.Run(theTop);
             _tables = export.TableManager.GetWithAllData();
 
@@ -121,19 +128,25 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatAllFieldsAreInToTable()
         {
-            CollectionAssert.AreEqual(new[] {"AggregatedDouble"}, _topTable.Fields.Select(_ => _.Name));
+            CollectionAssert.AreEqual(new[] {"AggregatedDouble", "FormulaOnAggregate" }, _topTable.Fields.Select(_ => _.Name));
         }
 
         [Test]
         public void TestThatDoubleAggregatedCorrectly()
         {
-            Assert.AreEqual(42 + 43, _topTable.Rows.Single().Columns.Single());
+            CollectionAssert.AreEqual(new[] { 42+43,(42+43)*2 }, _topTable.Rows.Single().Columns);
         }
 
         [Test]
         public void TestThatDoubleAggregatedTypeIsCorrect()
         {
-            Assert.AreEqual("Double", _topTable.Rows.Single().Columns.Single().GetType().Name);
+            CollectionAssert.AreEqual(new[] {"Double", "Double"}, _topTable.Rows.Single().Columns.Select(_ => _.GetType().Name));
+        }
+
+        [Test]
+        public void TestThatIsBasedOnAggregationIsCorrect()
+        {
+            CollectionAssert.AreEqual(new[] { true, true }, _topEntity.Fields.Select(_ => _.IsBasedOnAggregation));
         }
 
     }

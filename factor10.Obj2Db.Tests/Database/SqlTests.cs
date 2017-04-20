@@ -50,10 +50,10 @@ namespace factor10.Obj2Db.Tests
                 .Add("formulastring2").Formula("'TheStringProperty'")
                 );
             export.Run(_data);
-            export.TableManager.GetWithAllData().Single();
+            export.TableManager.GetWithAllData();
 
             var dbTable = (SqlTable) new SqlTableManager("dummy").New(export.TopEntity, true, true, -1);
-            _createSql = dbTable.GenerateCreateTable("");
+            _createSql = dbTable.GenerateCreateTable();
         }
 
         [Test]

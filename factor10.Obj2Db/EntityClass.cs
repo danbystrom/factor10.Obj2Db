@@ -9,19 +9,33 @@ namespace factor10.Obj2Db
     public sealed class EntityClass : Entity
     {
         private readonly EvaluateRpn _whereClause;
-        private readonly Entity[] _fieldsThenFormulas;
+        private readonly Entity[] _fieldsThenNonAggregatedFormulas;
+        private readonly Entity[] _aggregatedFormulas;
         public readonly List<EntityAggregation> AggregationFields = new List<EntityAggregation>();
 
         public readonly int EffectiveFieldCount;
         public int ParentEffectiveFieldCount { get; private set; }
         public Type ForeignKeyType { get; private set; }
+        public string ForeignKeyName { get; private set; }
+        public readonly string TableName;
 
         public readonly int PrimaryKeyIndex;
+        public string PrimaryKeyName => PrimaryKeyIndex < 0 ? "id_" : Fields[PrimaryKeyIndex].Name;
 
-        public EntityClass(entitySpec entitySpec, Type type, LinkedFieldInfo fieldInfo, Action<string> log)
+        public EntityClass(
+            EntityClass parent,
+            entitySpec entitySpec,
+            Type type,
+            LinkedFieldInfo fieldInfo,
+            Action<string> log)
             : base(entitySpec)
         {
-            log?.Invoke($"EntityClass ctor: {entitySpec.name}/{entitySpec.fields?.Count ?? 0} - {type?.Name} - {fieldInfo?.FieldType} - {fieldInfo?.IEnumerable?.Name}");
+            log?.Invoke(
+                $"EntityClass ctor: {entitySpec.name}/{entitySpec.fields?.Count ?? 0} - {type?.Name} - {fieldInfo?.FieldType} - {fieldInfo?.IEnumerable?.Name}");
+
+            TableName = parent != null && Spec.externalname == null
+                ? string.Join("_", parent.TableName, ExternalName)
+                : ExternalName;
 
             FieldInfo = fieldInfo;
             FieldType = fieldInfo?.FieldType;
@@ -55,7 +69,7 @@ namespace factor10.Obj2Db
             for (var li = 0; li < Lists.Count; li++)
                 Lists[li].ParentInitialized(this, li);
 
-            if ( !string.IsNullOrEmpty(Spec.where))
+            if (!string.IsNullOrEmpty(Spec.where))
                 _whereClause = new EvaluateRpn(new Rpn(Spec.where), Fields.Select(_ => _.NameAndType).ToList());
 
             for (var i = 0; i < Fields.Count; i++)
@@ -64,7 +78,11 @@ namespace factor10.Obj2Db
             var fieldsThenFormulas = Fields.Where(_ => !(_ is EntityAggregation)).ToList();
             Func<Entity, int> typeComparer = _ => _ is EntityFormula ? -1 : 1;
             fieldsThenFormulas.Sort((x, y) => typeComparer(y) - typeComparer(x));
-            _fieldsThenFormulas = fieldsThenFormulas.ToArray();
+            _fieldsThenNonAggregatedFormulas = fieldsThenFormulas.Where(_ => !_.IsBasedOnAggregation).ToArray();
+            _aggregatedFormulas = fieldsThenFormulas.Where(_ => _.IsBasedOnAggregation).ToArray();
+
+            if (PrimaryKeyIndex >= 0 && Fields[PrimaryKeyIndex].IsBasedOnAggregation)
+                throw new Exception($"The primary key must not be based on an aggregation (table '{TableName}')");
         }
 
         private void breakDownSubEntities(Type type, Action<string> log)
@@ -74,7 +92,7 @@ namespace factor10.Obj2Db
             foreach (var subEntitySpec in Spec.fields)
             {
                 subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
-                foreach (var subEntity in expansionOverStar(log, type, subEntitySpec, new HashSet<Type>()))
+                foreach (var subEntity in expansionOverStar(log, this, type, subEntitySpec, new HashSet<Type>()))
                     if (subEntity is EntityClass)
                         Lists.Add((EntityClass) subEntity);
                     else
@@ -89,6 +107,7 @@ namespace factor10.Obj2Db
 
         private static IEnumerable<Entity> expansionOverStar(
             Action<string> log,
+            EntityClass parent,
             Type masterType,
             entitySpec subEntitySpec,
             HashSet<Type> haltRecursion,
@@ -97,7 +116,7 @@ namespace factor10.Obj2Db
         {
             if (subEntitySpec.name != "*")
             {
-                yield return create(subEntitySpec, masterType, log);
+                yield return create(parent, subEntitySpec, masterType, log);
                 yield break;
             }
 
@@ -116,10 +135,10 @@ namespace factor10.Obj2Db
                 if (LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type) != null)
                 {
                     spec.Add("*");
-                    yield return create(spec, masterType, log);
+                    yield return create(parent, spec, masterType, log);
                 }
                 else if (!subProperties.Any())
-                    yield return create(spec, masterType, log);
+                    yield return create(parent, spec, masterType, log);
 
                 foreach (var liftedSubProperty in subProperties)
                 {
@@ -127,10 +146,10 @@ namespace factor10.Obj2Db
                         continue;
                     var propName = $"{prefix}{nameAndType.Name}.{liftedSubProperty.Name}";
                     if (LinkedFieldInfo.GetAllFieldsAndProperties(liftedSubProperty.Type).Any())
-                        foreach (var q in expansionOverStar(log, masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
+                        foreach (var q in expansionOverStar(log, parent, masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
                             yield return q;
                     else
-                        yield return create(entitySpec.Begin(propName).Add("*"), masterType, log);
+                        yield return create(parent, entitySpec.Begin(propName).Add("*"), masterType, log);
                         //yield return create(propName, masterType, log);
                 }
             }
@@ -142,7 +161,8 @@ namespace factor10.Obj2Db
         {
             ParentEffectiveFieldCount = parent.EffectiveFieldCount;
             ForeignKeyType = parent.PrimaryKeyIndex < 0 ? typeof(Guid) : parent.Fields[parent.PrimaryKeyIndex].FieldType;
-         }
+            ForeignKeyName = string.Join("_", parent.TableName, parent.PrimaryKeyName);
+        }
 
         public override bool PassesFilter(object[] rowResult)
         {
@@ -154,9 +174,15 @@ namespace factor10.Obj2Db
             return (IEnumerable)FieldInfo.GetValue(obj);
         }
 
-        public override void AssignResult(object[] result, object obj)
+        public void AssignResult1(object[] result, object obj)
         {
-            foreach (var entity in _fieldsThenFormulas)
+            foreach (var entity in _fieldsThenNonAggregatedFormulas)
+                entity.AssignResult(result, obj);
+        }
+
+        public void AssignResult2(object[] result, object obj)
+        {
+            foreach (var entity in _aggregatedFormulas)
                 entity.AssignResult(result, obj);
         }
 

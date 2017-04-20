@@ -124,6 +124,11 @@ namespace factor10.Obj2Db.Formula
             }
         }
 
+        public List<int> GetVariableIndexes()
+        {
+            return _original.OfType<RpnIndexedVariable>().Select(_ => _.Index).ToList();
+        }
+
         public RpnItemOperand Eval(object[] variables = null)
         {
             var stack = new Stack<RpnItemOperand>();

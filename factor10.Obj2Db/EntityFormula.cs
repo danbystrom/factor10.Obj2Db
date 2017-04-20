@@ -8,6 +8,9 @@ namespace factor10.Obj2Db
     {
         protected EvaluateRpn Evaluator;
 
+        private bool _isBasedOnAggregation;
+        public override bool IsBasedOnAggregation => _isBasedOnAggregation;
+
         public EntityFormula(entitySpec entitySpec, Action<string> log)
             : base(entitySpec)
         {
@@ -30,7 +33,9 @@ namespace factor10.Obj2Db
             FieldType = Evaluator.ResultingType is RpnItemOperandNumeric
                 ? typeof(double)
                 : typeof(string);
+            _isBasedOnAggregation = Evaluator.GetVariableIndexes().Any(_ => _ < parent.Fields.Count && parent.Fields[_].IsBasedOnAggregation);
         }
+
     }
 
 }

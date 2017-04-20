@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data.SqlClient;
 using System.Linq;
 
@@ -13,16 +14,24 @@ namespace factor10.Obj2Db.Tests.Database
 
     public class SqlTestHelpers
     {
-        private const string ConnectionStringBase = @"Data Source=localhost\SQLEXPRESS;Initial Catalog={0};User ID=nisse;password=nisse";
+        private static readonly string _connectionString;
+
+        static SqlTestHelpers()
+        {
+            _connectionString = ConfigurationManager.AppSettings["connectionstringbase"];
+        }
 
         public static string ConnectionString(string dbName)
         {
-            return string.Format(ConnectionStringBase, dbName);
+            return !string.IsNullOrEmpty(_connectionString)
+                ? string.Format(_connectionString, dbName ?? "")
+                : null;
         }
 
         public static void WithNewDb(string dbName, Action<SqlConnection> work)
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
+            var connectionString = ConnectionString(dbName);
+            if (connectionString == null)
                 return;
             CreateAndDropDatabase(dbName, true);
             using (var conn = new SqlConnection(ConnectionString(dbName)))

@@ -41,7 +41,7 @@ namespace factor10.Obj2Db.Tests
             {
                 var sw = Stopwatch.StartNew();
                 exportDb.Run(Enumerable.Range(0, 1).Select(_ => School));
-                _classQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM classes");
+                _classQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM school_classes");
             });
 
         }

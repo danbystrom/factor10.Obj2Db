@@ -18,6 +18,7 @@ namespace factor10.Obj2Db
         public List<NameAndType> Fields { get; }
 
         public bool AutomaticPrimaryKey => !IsLeafTable && PrimaryKeyIndex < 0;
+        public readonly string ForeignKeyName;
 
         private readonly int _flushThreshold;
 
@@ -33,7 +34,7 @@ namespace factor10.Obj2Db
         {
             TableManager = tableManager;
             _flushThreshold = flushThreshold;
-            Name = entity.ExternalName;
+            Name = entity.TableName;
             IsTopTable = isTopTable;
             IsLeafTable = isLeafTable;
             PrimaryKeyIndex = primaryKeyIndex;
@@ -46,7 +47,8 @@ namespace factor10.Obj2Db
                 _dataTable.Columns.Add("_id_", typeof(Guid)).AllowDBNull = false;
             if (!IsTopTable)
             {
-                var dc = _dataTable.Columns.Add("_fk_", entity.ForeignKeyType);
+                ForeignKeyName = entity.ForeignKeyName;
+                var dc = _dataTable.Columns.Add(ForeignKeyName, entity.ForeignKeyType);
                 if (entity.ForeignKeyType == typeof(string))
                     dc.MaxLength = 100;
                 dc.AllowDBNull = false;
@@ -107,7 +109,7 @@ namespace factor10.Obj2Db
             }
         }
 
-        public string GenerateCreateTable(string prefixedColumns)
+        public string GenerateCreateTable()
         {
             var columns = string.Join(",", _dataTable.Columns.Cast<DataColumn>().Select(_ => SqlHelpers.Field2Sql(_.ColumnName, _.DataType, _.AllowDBNull, _.MaxLength)));
             return $"CREATE TABLE [{Name}] ({columns})";

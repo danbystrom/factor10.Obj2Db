@@ -65,11 +65,11 @@ namespace factor10.Obj2Db
             foreach (var table in _tables)
                 Save(table);
             using (var conn = getOpenConnection())
-                foreach (var table in _tables)
+                foreach (var table in _tables.Cast<SqlTable>())
                     if (!table.IsTopTable && !tableWithFks.Contains(table.Name))
                     {
                         tableWithFks.Add(table.Name);
-                        using (var cmd = new SqlCommand($"CREATE INDEX {table.Name}_fk ON {table.Name}(_fk_)", conn))
+                        using (var cmd = new SqlCommand($"CREATE INDEX {table.Name}_fk ON {table.Name}({table.ForeignKeyName})", conn))
                             cmd.ExecuteNonQuery();
                     }
         }
@@ -86,12 +86,7 @@ namespace factor10.Obj2Db
                 if (_createdTables.Contains(table.Name))
                     return;
                 _createdTables.Add(table.Name);
-                var prefixedColumns = "";
-                if (table.AutomaticPrimaryKey)
-                    prefixedColumns = "[_id_] uniqueidentifier not null,";
-                if (!table.IsTopTable)
-                    prefixedColumns += "[_fk_] uniqueidentifier not null,";
-                var sql = table.GenerateCreateTable(prefixedColumns);
+                var sql = table.GenerateCreateTable();
                 Console.WriteLine($"Will create '{table.Name}': {sql}");
                 using (var cmd = new SqlCommand(sql, conn))
                     cmd.ExecuteNonQuery();

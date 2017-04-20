@@ -32,18 +32,18 @@ namespace factor10.Obj2Db.Tests
         {
             var spec = entitySpec.Begin()
                 .Add(entitySpec.Begin("Strings")
-                .Add("x").Formula("#index*2")
-                .Add("@|y"));
+                    .Add("x").Formula("#index*2")
+                    .Add("@|y"));
 
             var export = new DataExtract<TheTop>(spec);
             export.Run(new TheTop {Strings = new List<string> {"a", "b", "c", "d", "e"}});
 
-            var rows = export.TableManager.GetWithAllData().Single(_ => _.Name=="Strings").Rows;
+            var rows = export.TableManager.GetWithAllData().Single(_ => _.Name == "Strings").Rows;
             var firstColumn = rows.Select(_ => _.Columns.First());
             var lastColumn = rows.Select(_ => _.Columns.Last());
 
-            CollectionAssert.AreEqual(new[] { 0,2,4,6,8 }, firstColumn);
-            CollectionAssert.AreEqual(new[] { "a", "b", "c", "d", "e" }, lastColumn);
+            CollectionAssert.AreEqual(new[] {0, 2, 4, 6, 8}, firstColumn);
+            CollectionAssert.AreEqual(new[] {"a", "b", "c", "d", "e"}, lastColumn);
         }
 
         [Test]
@@ -52,19 +52,19 @@ namespace factor10.Obj2Db.Tests
             var spec = entitySpec.Begin()
                 .Add("Tot").Aggregates("Strings.x")
                 .Add(entitySpec.Begin("Strings")
-                .Add("x").Formula("#index*2")
-                .Add("@|y"));
+                    .Add("x").Formula("#index*2")
+                    .Add("@|y"));
 
             var export = new DataExtract<TheTop>(spec);
-            export.Run(new TheTop { Strings = new List<string> { "a", "b", "c", "d", "e" } });
+            export.Run(new TheTop {Strings = new List<string> {"a", "b", "c", "d", "e"}});
             var tables = export.TableManager.GetWithAllData();
 
             var rows = tables.Single(_ => _.Name == "Strings").Rows;
             var firstColumn = rows.Select(_ => _.Columns.First());
             var lastColumn = rows.Select(_ => _.Columns.Last());
 
-            CollectionAssert.AreEqual(new[] { 0, 2, 4, 6, 8 }, firstColumn);
-            CollectionAssert.AreEqual(new[] { "a", "b", "c", "d", "e" }, lastColumn);
+            CollectionAssert.AreEqual(new[] {0, 2, 4, 6, 8}, firstColumn);
+            CollectionAssert.AreEqual(new[] {"a", "b", "c", "d", "e"}, lastColumn);
 
             Assert.AreEqual(2 + 4 + 6 + 8, tables.First().Rows.Single().Columns.Single());
         }

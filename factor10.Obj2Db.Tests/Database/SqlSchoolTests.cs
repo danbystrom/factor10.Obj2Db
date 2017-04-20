@@ -18,7 +18,7 @@ namespace factor10.Obj2Db.Tests.Database
         [OneTimeSetUp]
         public void SetUp2()
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
+            if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
             var tableFactory = new SqlTableManager(SqlTestHelpers.ConnectionString("SchoolTest"));
             var export = new DataExtract<School>(Spec, tableFactory);
@@ -28,16 +28,16 @@ namespace factor10.Obj2Db.Tests.Database
                 export.Run(Enumerable.Range(0, NumberOfSchools).Select(_ => School));
                 Console.WriteLine(sw.ElapsedMilliseconds.ToString());
                 _schoolQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM school");
-                _classQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM classes");
-                _studentQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT TOP 1 * FROM students");
-                _studentCount = SqlTestHelpers.SimpleQuery<int>(conn, "SELECT count(*) FROM students");
+                _classQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM school_classes");
+                _studentQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT TOP 1 * FROM school_classes_students");
+                _studentCount = SqlTestHelpers.SimpleQuery<int>(conn, "SELECT count(*) FROM school_classes_students");
             });
         }
 
         [Test]
         public void ThenAllSchoolTableColumnNamesAreCorrect()
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
+            if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
             CollectionAssert.AreEqual(new[] {"_id_", "Name"}, _schoolQueryResult.NameAndTypes.Select(_ => _.Name));
         }
@@ -45,7 +45,7 @@ namespace factor10.Obj2Db.Tests.Database
         [Test]
         public void ThenAllSchoolTableColumnTypesAreCorrect()
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
+            if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
             CollectionAssert.AreEqual(new[] { typeof(Guid), typeof(string) }, _schoolQueryResult.NameAndTypes.Select(_ => _.Type));
         }
@@ -53,21 +53,23 @@ namespace factor10.Obj2Db.Tests.Database
         [Test]
         public void ThenTheCorrectNumberOfSchoolsAreInTheTable()
         {
+            if (SqlTestHelpers.ConnectionString(null) == null)
+                return;
             Assert.AreEqual(NumberOfSchools, _schoolQueryResult.Rows.Count);
         }
 
         [Test]
         public void ThenAllClassTableColumnNamesAreCorrect()
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
+            if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
-            CollectionAssert.AreEqual(new[] { "_id_", "_fk_", "Name" }, _classQueryResult.NameAndTypes.Select(_ => _.Name));
+            CollectionAssert.AreEqual(new[] { "_id_", "School_id_", "Name" }, _classQueryResult.NameAndTypes.Select(_ => _.Name));
         }
 
         [Test]
         public void ThenAllClassTableColumnTypesAreCorrect()
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
+            if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
             CollectionAssert.AreEqual(new[] { typeof(Guid), typeof(Guid), typeof(string) }, _classQueryResult.NameAndTypes.Select(_ => _.Type));
         }
@@ -75,20 +77,23 @@ namespace factor10.Obj2Db.Tests.Database
         [Test]
         public void ThenTheCorrectNumberOfClassesAreInTheTable()
         {
+            if (SqlTestHelpers.ConnectionString(null) == null)
+                return;
             Assert.AreEqual(NumberOfSchools*6, _classQueryResult.Rows.Count);
         }
 
+        [Test]
         public void ThenAllStudentTableColumnNamesAreCorrect()
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
+            if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
-            CollectionAssert.AreEqual(new[] { "_fk_", "FirstName", "LastName" }, _studentQueryResult.NameAndTypes.Select(_ => _.Name));
+            CollectionAssert.AreEqual(new[] { "School_Classes_id_", "FirstName", "LastName" }, _studentQueryResult.NameAndTypes.Select(_ => _.Name));
         }
 
         [Test]
         public void ThenAllStudentTableColumnTypesAreCorrect()
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
+            if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
             CollectionAssert.AreEqual(new[] { typeof(Guid), typeof(string), typeof(string) }, _studentQueryResult.NameAndTypes.Select(_ => _.Type));
         }
@@ -96,6 +101,8 @@ namespace factor10.Obj2Db.Tests.Database
         [Test]
         public void ThenTheCorrectNumberOfStudentsAreInTheTable()
         {
+            if (SqlTestHelpers.ConnectionString(null) == null)
+                return;
             Assert.AreEqual(NumberOfSchools*100, _studentCount);
         }
 

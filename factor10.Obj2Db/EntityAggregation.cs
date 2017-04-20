@@ -21,6 +21,8 @@ namespace factor10.Obj2Db
 
         private readonly EvaluateRpn _evaluator;
 
+        public override bool IsBasedOnAggregation => true;
+
         public EntityAggregation(entitySpec entitySpec, Action<string> log)
             : base(entitySpec)
         {

@@ -42,6 +42,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -61,6 +62,7 @@
     <Compile Include="SchoolAggregationTests.cs" />
     <Compile Include="StarTests2.cs" />
     <Compile Include="StarTests.cs" />
+    <Compile Include="TableNamingTests.cs" />
     <Compile Include="TestDataStructures\DeepDeclaration.cs" />
     <Compile Include="TestDataStructures\SneakyList.cs" />
     <Compile Include="WhereFilteringTests.cs" />
@@ -85,6 +87,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

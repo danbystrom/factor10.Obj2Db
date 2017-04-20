@@ -13,7 +13,7 @@ namespace factor10.Obj2Db
 
         public DataExtract(entitySpec entitySpec, ITableManager tableManager = null, Action<string> log = null)
         {
-            TopEntity = Entity.Create(entitySpec, typeof(T), log);
+            TopEntity = Entity.Create(null, entitySpec, typeof(T), log);
             TableManager = tableManager ?? new InMemoryTableManager();
         }
 
@@ -42,7 +42,7 @@ namespace factor10.Obj2Db
             var rowResult = new object[ewt.Entity.EffectiveFieldCount];
             rowResult[rowResult.Length - 1] = rowIndex;
             var subRowIndex = 0;
-            ewt.Entity.AssignResult(rowResult, obj);
+            ewt.Entity.AssignResult1(rowResult, obj);
             var primaryKey = ewt.GetPrimaryKey(rowResult);
             foreach (var subEwt in ewt.Lists)
             {
@@ -58,7 +58,7 @@ namespace factor10.Obj2Db
                 aggregator?.End(rowResult);
             }
             // this is temporary - here we should only calculate formulas based on aggregates
-            ewt.Entity.AssignResult(rowResult, obj);
+            ewt.Entity.AssignResult2(rowResult, obj);
             if (!ewt.Entity.PassesFilter(rowResult))
                 return null;
             ewt.Table?.AddRow(primaryKey, foreignKey, rowResult);
