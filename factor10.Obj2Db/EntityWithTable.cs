@@ -19,18 +19,22 @@ namespace factor10.Obj2Db
         {
             Entity = entity;
             if (!Entity.NoSave)
-                Table = t.New(entity, isTopTable, !Entity.Lists.Any(), -1);
+                Table = t.New(entity, isTopTable, !Entity.Lists.Any(), entity.PrimaryKeyIndex);
             foreach (var e in entity.Lists)
                 Lists.Add(new EntityWithTable(e, t, false));
             if (entity.AggregationFields.Any())
                 Aggregator = new Aggregator(entity.AggregationFields.ToArray(), entity.ParentEffectiveFieldCount);
         }
 
-        public object GetPrimaryKey()
+        public object GetPrimaryKey(object[] rowResult)
         {
             if (Table?.IsLeafTable ?? true)
                 return null;
-            return Guid.NewGuid();
+            if (Table.PrimaryKeyIndex >= 0)
+            {
+                
+            }
+            return Table.PrimaryKeyIndex < 0 ? Guid.NewGuid() : rowResult[Table.PrimaryKeyIndex];
         }
 
     }

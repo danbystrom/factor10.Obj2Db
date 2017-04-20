@@ -12,8 +12,11 @@ namespace factor10.Obj2Db
         private readonly Entity[] _fieldsThenFormulas;
         public readonly List<EntityAggregation> AggregationFields = new List<EntityAggregation>();
 
-        public int EffectiveFieldCount;
-        public int ParentEffectiveFieldCount;
+        public readonly int EffectiveFieldCount;
+        public int ParentEffectiveFieldCount { get; private set; }
+        public Type ForeignKeyType { get; private set; }
+
+        public readonly int PrimaryKeyIndex;
 
         public EntityClass(entitySpec entitySpec, Type type, LinkedFieldInfo fieldInfo, Action<string> log)
             : base(entitySpec)
@@ -39,8 +42,12 @@ namespace factor10.Obj2Db
 
             // this is temporary - to be able to serialze a contract with "*" since it was digging up so much garbage...
             // need to investigae each "garbage" occurrence and handle it more elegantly
-            Fields.RemoveAll(_ => _ is EntityPlainField && SqlHelpers.Field2Sql(_.NameAndType, true) == null);
+            Fields.RemoveAll(_ => _ is EntityPlainField && SqlHelpers.Field2Sql(_.NameAndType.Name, _.NameAndType.Type, false, 0, true) == null);
             Lists.RemoveAll(_ => !_.Fields.Any() && !_.Lists.Any());
+
+            if (Fields.Count(_ => _.Spec.primarykey) > 1)
+                throw new Exception("There may be no more than one primary key field");
+            PrimaryKeyIndex = Fields.FindIndex(_ => _.Spec.primarykey);
 
             EffectiveFieldCount = Fields.Count + 1;
             for (var fi = 0; fi < Fields.Count; fi++)
@@ -134,7 +141,8 @@ namespace factor10.Obj2Db
         public override void ParentInitialized(EntityClass parent, int index)
         {
             ParentEffectiveFieldCount = parent.EffectiveFieldCount;
-        }
+            ForeignKeyType = parent.PrimaryKeyIndex < 0 ? typeof(Guid) : parent.Fields[parent.PrimaryKeyIndex].FieldType;
+         }
 
         public override bool PassesFilter(object[] rowResult)
         {

@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using factor10.Obj2Db.Tests.TestData;
 using factor10.Obj2Db.Tests.TestDataStructures;
 using Newtonsoft.Json;

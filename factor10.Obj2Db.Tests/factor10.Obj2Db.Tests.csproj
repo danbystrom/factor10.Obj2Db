@@ -56,6 +56,7 @@
     <Compile Include="Formula\CompiledEvaluatorTests.cs" />
     <Compile Include="Formula\ConcurrencyTests.cs" />
     <Compile Include="InverseEntityTests.cs" />
+    <Compile Include="PrimaryKeyTests.cs" />
     <Compile Include="SchoolBaseTests.cs" />
     <Compile Include="SchoolAggregationTests.cs" />
     <Compile Include="StarTests2.cs" />

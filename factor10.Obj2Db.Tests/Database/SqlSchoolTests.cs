@@ -32,7 +32,6 @@ namespace factor10.Obj2Db.Tests.Database
                 _studentQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT TOP 1 * FROM students");
                 _studentCount = SqlTestHelpers.SimpleQuery<int>(conn, "SELECT count(*) FROM students");
             });
-
         }
 
         [Test]

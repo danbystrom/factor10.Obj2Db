@@ -8,7 +8,7 @@ namespace factor10.Obj2Db
 {
     public interface ITableManager
     {
-        ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex);
+        ITable New(EntityClass entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex);
         void Save(ITable table);
         void Flush();
         List<ITable> GetWithAllData();
@@ -36,9 +36,9 @@ namespace factor10.Obj2Db
             return conn;
         }
 
-        public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex)
+        public ITable New(EntityClass entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex)
         {
-            var table = new SqlTable(this, entity, isTopTable, isLeafTable, -1, FlushThreshold);
+            var table = new SqlTable(this, entity, isTopTable, isLeafTable, primaryKeyIndex, FlushThreshold);
             _tables.Add(table);
             return table;
         }
@@ -91,7 +91,7 @@ namespace factor10.Obj2Db
                     prefixedColumns = "[_id_] uniqueidentifier not null,";
                 if (!table.IsTopTable)
                     prefixedColumns += "[_fk_] uniqueidentifier not null,";
-                var sql = SqlHelpers.GenerateCreateTable(table, prefixedColumns);
+                var sql = table.GenerateCreateTable(prefixedColumns);
                 Console.WriteLine($"Will create '{table.Name}': {sql}");
                 using (var cmd = new SqlCommand(sql, conn))
                     cmd.ExecuteNonQuery();
@@ -110,11 +110,11 @@ namespace factor10.Obj2Db
     {
         public readonly List<ITable> Tables = new List<ITable>();
 
-        public ITable New(Entity entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex)
+        public ITable New(EntityClass entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex)
         {
             lock (this)
             {
-                var table = new InMemoryTable(entity, isTopTable, isLeafTable, -1);
+                var table = new InMemoryTable(entity, isTopTable, isLeafTable, primaryKeyIndex);
                 Tables.Add(table);
                 return table;
             }

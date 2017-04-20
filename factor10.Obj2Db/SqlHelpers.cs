@@ -23,9 +23,8 @@ namespace factor10.Obj2Db
             {"System.Byte[]", "varbinary(max)"}
         };
 
-        public static string Field2Sql(NameAndType field, bool returnNullWhenInvalidType = false)
+        public static string Field2Sql(string name, Type type, bool allowNull, int max = 0, bool returnNullWhenInvalidType = false)
         {
-            var type = field.Type;
             var notnull = type != typeof(string) && type != typeof(byte[]);
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
@@ -40,12 +39,10 @@ namespace factor10.Obj2Db
                     return null;
                 else
                     throw new Exception($"Unhandled column type '{type}'");
-            return $"[{field.Name}] {def}" + (notnull ? " not null" : "");
-        }
-
-        public static string GenerateCreateTable(ITable table, string prefixedColumns)
-        {
-            return $"CREATE TABLE [{table.Name}] ({prefixedColumns}{string.Join(",", table.Fields.Select(_ => Field2Sql(_)))})";
+            var result = $"[{name}] {def}" + (!allowNull ? " not null" : "");
+            if (max > 1)
+                result = result.Replace("(max)", $"({max})");
+            return result;
         }
 
     }

@@ -41,8 +41,7 @@ namespace factor10.Obj2Db
         {
             if (string.IsNullOrEmpty(field))
                 throw new ArgumentException("Empty aggregate field name");
-            if (!Any())
-                throw new Exception("Can only be called on field");
+            ensureField();
             fields.Last().aggregation = field;
             fields.Last().aggregationtype = aggregationtype;
             return this;
@@ -52,24 +51,35 @@ namespace factor10.Obj2Db
         {
             if (string.IsNullOrEmpty(expression))
                 throw new ArgumentException("Empty formula expression");
-            if (!Any())
-                throw new Exception("Can only be called on field");
+            ensureField();
             fields.Last().formula = expression;
             return this;
         }
 
         public entitySpec Where(string whereClause)
         {
-            if (Any())
-                throw new Exception("Where can only be called on list");
+            ensureList();
             where = whereClause;
             return this;
         }
 
         public entitySpec PrimaryKey()
         {
-            primarykey = true;
+            ensureField();
+            fields.Last().primarykey = true;
             return this;
+        }
+
+        private void ensureList()
+        {
+            if (Any())
+                throw new Exception("Where can only be called on list");
+        }
+
+        private void ensureField()
+        {
+            if (!Any())
+                throw new Exception("Where can only be called on field");
         }
 
         public entitySpec Add(entitySpec entitySpec)

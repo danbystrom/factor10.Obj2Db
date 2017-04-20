@@ -41,8 +41,9 @@ namespace factor10.Obj2Db
         {
             var rowResult = new object[ewt.Entity.EffectiveFieldCount];
             rowResult[rowResult.Length - 1] = rowIndex;
-            var primaryKey = ewt.GetPrimaryKey();
             var subRowIndex = 0;
+            ewt.Entity.AssignResult(rowResult, obj);
+            var primaryKey = ewt.GetPrimaryKey(rowResult);
             foreach (var subEwt in ewt.Lists)
             {
                 var enumerable = subEwt.Entity.GetIEnumerable(obj);
@@ -56,6 +57,7 @@ namespace factor10.Obj2Db
                     }
                 aggregator?.End(rowResult);
             }
+            // this is temporary - here we should only calculate formulas based on aggregates
             ewt.Entity.AssignResult(rowResult, obj);
             if (!ewt.Entity.PassesFilter(rowResult))
                 return null;

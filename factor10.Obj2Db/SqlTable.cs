@@ -25,7 +25,7 @@ namespace factor10.Obj2Db
 
         public SqlTable(
             ITableManager tableManager, 
-            Entity entity,
+            EntityClass entity,
             bool isTopTable,
             bool isLeafTable,
             int primaryKeyIndex,
@@ -43,11 +43,19 @@ namespace factor10.Obj2Db
 
             _dataTable = new DataTable();
             if (AutomaticPrimaryKey)
-                _dataTable.Columns.Add("_id_", typeof(Guid));
+                _dataTable.Columns.Add("_id_", typeof(Guid)).AllowDBNull = false;
             if (!IsTopTable)
-                _dataTable.Columns.Add("_fk_", typeof(Guid));
+            {
+                var dc = _dataTable.Columns.Add("_fk_", entity.ForeignKeyType);
+                if (entity.ForeignKeyType == typeof(string))
+                    dc.MaxLength = 100;
+                dc.AllowDBNull = false;
+            }
             foreach (var field in Fields)
-                _dataTable.Columns.Add(field.Name, LinkedFieldInfo.StripNullable(field.Type));
+            {
+                var dc = _dataTable.Columns.Add(field.Name, LinkedFieldInfo.StripNullable(field.Type));
+                dc.AllowDBNull = field.Type == typeof(string) || field.Type == typeof(byte[]) || field.Type != LinkedFieldInfo.StripNullable(field.Type);
+            }
         }
 
         public void WithDataTable(Action<DataTable> action)
@@ -59,7 +67,8 @@ namespace factor10.Obj2Db
 
         public void AddRow(object pk, object fk, object[] columns)
         {
-            if (columns.Length < Fields.Count)  // notsaved columns are passed here and will/should be truncated later
+            // remember: notsaved columns are passed here and will/should be truncated later
+            if (columns.Length < Fields.Count)  
                 throw new ArgumentException();
 
             var row = _dataTable.NewRow();
@@ -97,6 +106,13 @@ namespace factor10.Obj2Db
                 return rows;
             }
         }
+
+        public string GenerateCreateTable(string prefixedColumns)
+        {
+            var columns = string.Join(",", _dataTable.Columns.Cast<DataColumn>().Select(_ => SqlHelpers.Field2Sql(_.ColumnName, _.DataType, _.AllowDBNull, _.MaxLength)));
+            return $"CREATE TABLE [{Name}] ({columns})";
+        }
+
     }
 
 }
