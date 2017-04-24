@@ -9,8 +9,9 @@ namespace factor10.Obj2Db
     public interface ITableManager
     {
         ITable New(EntityClass entity, bool isTopTable, bool isLeafTable, int primaryKeyIndex);
+        void Begin();
+        void End();
         void Save(ITable table);
-        void Flush();
         List<ITable> GetWithAllData();
         Dictionary<string, int> GetExportedSummary();
     }
@@ -20,7 +21,6 @@ namespace factor10.Obj2Db
         private readonly string _connectionString;
 
         private readonly ConcurrentBag<ITable> _tables = new ConcurrentBag<ITable>();
-        private readonly HashSet<string> _createdTables = new HashSet<string>();
 
         public int FlushThreshold = 5000;
 
@@ -43,28 +43,52 @@ namespace factor10.Obj2Db
             return table;
         }
 
-        public void Save(ITable table)
+        private static string cutTableName(string s, string tmp)
         {
-            var tbl = (SqlTable) table;
+            s = s + tmp;
+            return s.Substring(s.Length - Math.Min(s.Length, 128));
+        }
+
+        private static string useTableName(string s)
+        {
+            return cutTableName(s, "_tmp");
+        }
+
+        private static string bckTableName(string s)
+        {
+            return cutTableName(s, "_bck");
+        }
+
+        public void Begin()
+        {
+            var tables = _tables.ToLookup(_ => _.Name).ToDictionary(_ => _.Key, _ => (SqlTable)_.First());
             using (var conn = getOpenConnection())
             {
-                ensureTableCreated(conn, tbl);
-                var bulkCopy = new SqlBulkCopy(
-                    conn,
-                    SqlBulkCopyOptions.TableLock |
-                    SqlBulkCopyOptions.FireTriggers |
-                    SqlBulkCopyOptions.UseInternalTransaction,
-                    null) {DestinationTableName = table.Name};
-                tbl.WithDataTable(bulkCopy.WriteToServer);
+                var allExisting = getExistingTableNames(conn);
+                var clashingUse = tables.Keys.Where(_ => allExisting.Contains(useTableName(_).ToUpper())).ToList();
+                executeCommand(conn, clashingUse.Select(_ => $"DROP TABLE {_}"));
+                executeCommand(conn, tables.Select(_ => _.Value.GenerateCreateTable(useTableName(_.Key)))); 
             }
         }
 
-        public void Flush()
+        public void End()
         {
-            var tableWithFks = new HashSet<string>();
+            //flush
             foreach (var table in _tables)
                 Save(table);
+
+            var tables = _tables.ToLookup(_ => _.Name).ToDictionary(_ => _.Key, _ => (SqlTable) _.First());
             using (var conn = getOpenConnection())
+            {
+                // drop _bck-tables, rename existing tables to _back and then rename _tmp-tales to the real names
+                var allExisting = getExistingTableNames(conn);
+                var clashingBck = tables.Keys.Where(_ => allExisting.Contains(bckTableName(_).ToUpper())).ToList();
+                executeCommand(conn, clashingBck.Select(_ => $"DROP TABLE {_}"));
+                var clashingReal = tables.Keys.Where(_ => allExisting.Contains(_.ToUpper())).ToList();
+                executeCommand(conn, clashingReal.Select(_ => $"EXEC sp_rename '{_}', '{bckTableName(_)}'"));
+                executeCommand(conn, tables.Keys.Select(_ => $"EXEC sp_rename '{useTableName(_)}', '{_}'"));
+
+                var tableWithFks = new HashSet<string>();
                 foreach (var table in _tables.Cast<SqlTable>())
                     if (!table.IsTopTable && !tableWithFks.Contains(table.Name))
                     {
@@ -72,25 +96,46 @@ namespace factor10.Obj2Db
                         using (var cmd = new SqlCommand($"CREATE INDEX {table.Name}_fk ON {table.Name}({table.ForeignKeyName})", conn))
                             cmd.ExecuteNonQuery();
                     }
+            }
+        }
+
+        private static void executeCommand(SqlConnection conn, IEnumerable<string> sqls)
+        {
+            var list = sqls.ToList();
+            if (!list.Any())
+                return;
+            using (var cmd = new SqlCommand(string.Join(";", list), conn))
+                cmd.ExecuteNonQuery();
+        }
+
+        private HashSet<string> getExistingTableNames(SqlConnection conn)
+        {
+            var existing = new HashSet<string>();
+            using (var cmd = new SqlCommand("SELECT name FROM sys.Tables WHERE type='U'", conn))
+            using (var reader = cmd.ExecuteReader())
+                while (reader.Read())
+                    existing.Add(reader.GetString(0).ToUpper());
+            return existing;
+        }
+
+        public void Save(ITable table)
+        {
+            var tbl = (SqlTable) table;
+            using (var conn = getOpenConnection())
+            {
+                var bulkCopy = new SqlBulkCopy(
+                    conn,
+                    SqlBulkCopyOptions.TableLock |
+                    SqlBulkCopyOptions.FireTriggers |
+                    SqlBulkCopyOptions.UseInternalTransaction,
+                    null) {DestinationTableName = useTableName(table.Name)};
+                tbl.WithDataTable(bulkCopy.WriteToServer);
+            }
         }
 
         public List<ITable> GetWithAllData()
         {
             throw new NotImplementedException();
-        }
-
-        private void ensureTableCreated(SqlConnection conn, SqlTable table)
-        {
-            lock (this)
-            {
-                if (_createdTables.Contains(table.Name))
-                    return;
-                _createdTables.Add(table.Name);
-                var sql = table.GenerateCreateTable();
-                Console.WriteLine($"Will create '{table.Name}': {sql}");
-                using (var cmd = new SqlCommand(sql, conn))
-                    cmd.ExecuteNonQuery();
-            }
         }
 
         public Dictionary<string, int> GetExportedSummary()
@@ -119,7 +164,11 @@ namespace factor10.Obj2Db
         {
         }
 
-        public void Flush()
+        public void Begin()
+        {
+        }
+
+        public void End()
         {
         }
 

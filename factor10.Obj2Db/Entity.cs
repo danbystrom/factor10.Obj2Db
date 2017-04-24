@@ -39,7 +39,8 @@ namespace factor10.Obj2Db
                 {
                     name = entitySpec.name ?? type.Name,
                     externalname = entitySpec.externalname,
-                    fields = entitySpec.fields
+                    fields = entitySpec.fields,
+                    where = entitySpec.where
                 },
                 type,
                 null,
@@ -72,10 +73,10 @@ namespace factor10.Obj2Db
         {
         }
 
-        public virtual bool PassesFilter(object[] rowResult)
-        {
-            return true;
-        }
+        //public virtual bool PassesFilter(object[] rowResult)
+        //{
+        //    return true;
+        //}
 
         public override string ToString()
         {

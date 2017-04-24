@@ -6,31 +6,38 @@ using System.Threading;
 namespace factor10.Obj2Db
 {
 
-    public sealed class DataExtract<T>
+    public class DataExtract
     {
         public readonly EntityClass TopEntity;
         public readonly ITableManager TableManager;
+        public readonly Type Type;
 
-        public DataExtract(entitySpec entitySpec, ITableManager tableManager = null, Action<string> log = null)
+        public DataExtract(Type type, entitySpec entitySpec, ITableManager tableManager = null, Action<string> log = null)
         {
-            TopEntity = Entity.Create(null, entitySpec, typeof(T), log);
+            if (type == null)
+                throw new NullReferenceException(nameof(type));
+            if (entitySpec == null)
+                throw new NullReferenceException(nameof(entitySpec));
+            Type = type;
+            TopEntity = Entity.Create(null, entitySpec, Type, log);
             TableManager = tableManager ?? new InMemoryTableManager();
         }
 
-        public void Run(T obj)
+        public void Run(object obj)
         {
             Run(new[] {obj});
         }
 
-        public void Run(IEnumerable<T> objs)
+        public void Run(IEnumerable<object> objs)
         {
             var ed = new ConcurrentEntityTableDictionary(TableManager, TopEntity);
             var nextRowIndex = 0;
+            TableManager.Begin();
             objs.AsParallel().ForAll(_ =>
             {
                 run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty, Interlocked.Increment(ref nextRowIndex));
             });
-            TableManager.Flush();
+            TableManager.End();
         }
 
         private object[] run(
@@ -42,7 +49,9 @@ namespace factor10.Obj2Db
             var rowResult = new object[ewt.Entity.EffectiveFieldCount];
             rowResult[rowResult.Length - 1] = rowIndex;
             var subRowIndex = 0;
-            ewt.Entity.AssignResult1(rowResult, obj);
+            ewt.Entity.AssignResultPre(rowResult, obj);
+            if (!ewt.Entity.PassesFilterPre(rowResult))
+                return null;
             var primaryKey = ewt.GetPrimaryKey(rowResult);
             foreach (var subEwt in ewt.Lists)
             {
@@ -57,12 +66,20 @@ namespace factor10.Obj2Db
                     }
                 aggregator?.End(rowResult);
             }
-            // this is temporary - here we should only calculate formulas based on aggregates
-            ewt.Entity.AssignResult2(rowResult, obj);
-            if (!ewt.Entity.PassesFilter(rowResult))
+            ewt.Entity.AssignResultPost(rowResult, obj);
+            if (!ewt.Entity.PassesFilterPost(rowResult))
                 return null;
             ewt.Table?.AddRow(primaryKey, foreignKey, rowResult);
             return rowResult;
+        }
+
+    }
+
+    public class DataExtract<T> : DataExtract
+    {
+        public DataExtract(entitySpec entitySpec, ITableManager tableManager = null, Action<string> log = null)
+            : base(typeof(T), entitySpec, tableManager, log)
+        {
         }
 
     }

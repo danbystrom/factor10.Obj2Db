@@ -53,7 +53,7 @@ namespace factor10.Obj2Db.Tests
             export.TableManager.GetWithAllData();
 
             var dbTable = (SqlTable) new SqlTableManager("dummy").New(export.TopEntity, true, true, -1);
-            _createSql = dbTable.GenerateCreateTable();
+            _createSql = dbTable.GenerateCreateTable(dbTable.Name);
         }
 
         [Test]

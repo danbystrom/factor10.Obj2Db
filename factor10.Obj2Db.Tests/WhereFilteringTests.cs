@@ -97,6 +97,21 @@ namespace factor10.Obj2Db.Tests
             //Assert.AreEqual(4, studentsTable.Rows.Count);
         }
 
+        [Test]
+        public void TestFiltering3()
+        {
+            var schools = Enumerable.Range(0, 10).Select(_ => new School {Name = $"Skola {_}"});
+
+            var spec = entitySpec.Begin().Where("#index%2==0");
+            var export = new DataExtract<School>(spec);
+            export.Run(schools);
+            var tables = export.TableManager.GetWithAllData();
+            var schoolsTable = tables.Single(_ => _.Name == "School");
+            Assert.AreEqual(5, schoolsTable.Rows.Count);
+            // this does not work yet...
+            //Assert.AreEqual(4, studentsTable.Rows.Count);
+        }
+
     }
 
 }

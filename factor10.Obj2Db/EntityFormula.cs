@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using factor10.Obj2Db.Formula;
 
@@ -27,13 +28,23 @@ namespace factor10.Obj2Db
 
         public override void ParentInitialized(EntityClass parent, int index)
         {
-            var fieldsNameAndTypes = parent.Fields.Select(_ => _.NameAndType).ToList();
-            fieldsNameAndTypes.Add(new NameAndType("#index", typeof(int)));
-            Evaluator = new EvaluateRpn(new Rpn(Spec.formula), fieldsNameAndTypes);
+            Evaluator = CreateEvaluator(Spec.formula, parent.Fields);
             FieldType = Evaluator.ResultingType is RpnItemOperandNumeric
                 ? typeof(double)
                 : typeof(string);
-            _isBasedOnAggregation = Evaluator.GetVariableIndexes().Any(_ => _ < parent.Fields.Count && parent.Fields[_].IsBasedOnAggregation);
+            _isBasedOnAggregation = IsEvaluatorBasedOnAggregation(Evaluator, parent.Fields); //Evaluator.GetVariableIndexes().Any(_ => _ < parent.Fields.Count && parent.Fields[_].IsBasedOnAggregation);
+        }
+
+        public static EvaluateRpn CreateEvaluator(string formula, List<Entity> fields)
+        {
+            var fieldsNameAndTypes = fields.Select(_ => _.NameAndType).ToList();
+            fieldsNameAndTypes.Add(new NameAndType("#index", typeof(int)));
+            return new EvaluateRpn(new Rpn(formula), fieldsNameAndTypes);
+        }
+
+        public static bool IsEvaluatorBasedOnAggregation(EvaluateRpn evaluator, List<Entity> fields)
+        {
+            return evaluator.GetVariableIndexes().Any(_ => _ < fields.Count && fields[_].IsBasedOnAggregation);
         }
 
     }

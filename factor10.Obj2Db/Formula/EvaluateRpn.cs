@@ -52,6 +52,7 @@ namespace factor10.Obj2Db.Formula
                 {Operator.Negation, stack => calcUnary(stack, x => -x)},
                 {Operator.Not, stack => calcUnary(stack, x => x != 0 ? 1 : 0)},
                 {Operator.Division, stack => calcBinary(stack, (x, y) => x / y)},
+                {Operator.Mod, stack => calcBinary(stack, (x, y) => (int)x % (int)y)},
                 {Operator.Minus, stack => calcBinary(stack, (x, y) => x - y)},
                 {Operator.Multiplication, stack => calcBinary(stack, (x, y) => x * y)},
                 {Operator.Addition, stack => calcBinary(stack, (x, y) => x + y)},

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using factor10.Obj2Db.Tests.TestData;
 using NUnit.Framework;
@@ -22,13 +23,13 @@ namespace factor10.Obj2Db.Tests
             var firstNames = new[] {"Ada", "Bertil", "Cecilia", "David", "Elina", "Fredrik", "Gun", "Hans", "Ida", "Jan", "Klara"};
             var lastNames = new[] {"Johansson", "Eriksson", "Karlsson", "Andersson", "Nilsson", "Svensson", "Pettersson"};
             for (var i = 0; i < 100; i++)
-                School.Classes[i%School.Classes.Count].Students.Add(new Student
+                School.Classes[i % School.Classes.Count].Students.Add(new Student
                 {
-                    FirstName = firstNames[i%firstNames.Length],
-                    LastName = lastNames[i%lastNames.Length]
+                    FirstName = firstNames[i % firstNames.Length],
+                    LastName = lastNames[i % lastNames.Length]
                 });
 
-            Spec = entitySpec.Begin()
+            Spec = entitySpec.Begin("School")
                 .Add("Name")
                 .Add(entitySpec.Begin("Classes")
                     .Add("Name")

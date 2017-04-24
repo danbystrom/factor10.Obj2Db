@@ -9,6 +9,7 @@ namespace factor10.Obj2Db
     public sealed class EntityClass : Entity
     {
         private readonly EvaluateRpn _whereClause;
+        private readonly bool _isWhereClauseBasedOnAggregation;
         private readonly Entity[] _fieldsThenNonAggregatedFormulas;
         private readonly Entity[] _aggregatedFormulas;
         public readonly List<EntityAggregation> AggregationFields = new List<EntityAggregation>();
@@ -70,7 +71,10 @@ namespace factor10.Obj2Db
                 Lists[li].ParentInitialized(this, li);
 
             if (!string.IsNullOrEmpty(Spec.where))
-                _whereClause = new EvaluateRpn(new Rpn(Spec.where), Fields.Select(_ => _.NameAndType).ToList());
+            {
+                _whereClause = EntityFormula.CreateEvaluator(Spec.where, Fields);
+                _isWhereClauseBasedOnAggregation = EntityFormula.IsEvaluatorBasedOnAggregation(_whereClause, Fields);
+            }
 
             for (var i = 0; i < Fields.Count; i++)
                 Fields[i].ResultSetIndex = i;
@@ -164,8 +168,17 @@ namespace factor10.Obj2Db
             ForeignKeyName = string.Join("_", parent.TableName, parent.PrimaryKeyName);
         }
 
-        public override bool PassesFilter(object[] rowResult)
+        public bool PassesFilterPre(object[] rowResult)
         {
+            if (_isWhereClauseBasedOnAggregation)
+                return true;  // let it thru and catch it in PassesFilterPost instead
+            return _whereClause == null || _whereClause.Eval(rowResult).Numeric > 0;
+        }
+
+        public bool PassesFilterPost(object[] rowResult)
+        {
+            if (!_isWhereClauseBasedOnAggregation)
+                return true;  // should have been handled PassesFilterPre 
             return _whereClause == null || _whereClause.Eval(rowResult).Numeric > 0;
         }
 
@@ -174,16 +187,23 @@ namespace factor10.Obj2Db
             return (IEnumerable)FieldInfo.GetValue(obj);
         }
 
-        public void AssignResult1(object[] result, object obj)
+        public void AssignResultPre(object[] result, object obj)
         {
             foreach (var entity in _fieldsThenNonAggregatedFormulas)
                 entity.AssignResult(result, obj);
         }
 
-        public void AssignResult2(object[] result, object obj)
+        public void AssignResultPost(object[] result, object obj)
         {
             foreach (var entity in _aggregatedFormulas)
                 entity.AssignResult(result, obj);
+        }
+
+        public IEnumerable<EntityClass> AllEntityClasses()
+        {
+            yield return this;
+            foreach (var child in Lists.SelectMany(_ => _.AllEntityClasses()))
+                yield return child;
         }
 
     }

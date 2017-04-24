@@ -109,10 +109,10 @@ namespace factor10.Obj2Db
             }
         }
 
-        public string GenerateCreateTable()
+        public string GenerateCreateTable(string name)
         {
             var columns = string.Join(",", _dataTable.Columns.Cast<DataColumn>().Select(_ => SqlHelpers.Field2Sql(_.ColumnName, _.DataType, _.AllowDBNull, _.MaxLength)));
-            return $"CREATE TABLE [{Name}] ({columns})";
+            return $"CREATE TABLE [{name}] ({columns})";
         }
 
     }

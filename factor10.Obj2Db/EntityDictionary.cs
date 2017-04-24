@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace factor10.Obj2Db
 {
@@ -14,6 +15,7 @@ namespace factor10.Obj2Db
         {
             _tableManager = tableManager;
             _template = template;
+            GetOrNew(Thread.CurrentThread.ManagedThreadId);  // force creation of the first table set on current thread
         }
 
         public EntityWithTable GetOrNew(int key)
