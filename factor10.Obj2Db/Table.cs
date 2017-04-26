@@ -67,7 +67,10 @@ namespace factor10.Obj2Db
             PrimaryKeyIndex = primaryKeyIndex;
             Fields = entity.Fields.Where(_ => !_.NoSave).Select(_ => new NameAndType(_.ExternalName, _.FieldType)).ToList();
             if (Fields.Any(_ => string.IsNullOrEmpty(_.Name)))
-                throw new ArgumentException($"Table {Name} contains empty column name");
+                throw new ArgumentException($"Table '{Name}' contains empty column name");
+            var dupCheck = Fields.ToLookup(_ => _.Name.ToUpper(), _ => _).Where(_ => _.Count() != 1).Select(_ => _.Key).ToList();
+            if (dupCheck.Any())
+                throw new ArgumentException($"Table '{Name}' contains duplicate column names '{string.Join("','", dupCheck)}'");
             Rows = new List<TableRow>();
         }
 

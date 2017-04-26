@@ -43,7 +43,7 @@ namespace factor10.Obj2Db.Tests.Database
                 finally
                 {
                     conn.Close();
-                    //CreateAndDropDatabase(dbName, false);
+                    CreateAndDropDatabase(dbName, false);
                 }
         }
 

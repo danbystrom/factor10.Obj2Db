@@ -64,8 +64,9 @@ namespace factor10.Obj2Db
             var tables = _tables.ToLookup(_ => _.Name).ToDictionary(_ => _.Key, _ => (SqlTable)_.First());
             using (var conn = getOpenConnection())
             {
-                var allExisting = getExistingTableNames(conn);
-                var clashingUse = tables.Keys.Where(_ => allExisting.Contains(useTableName(_).ToUpper())).ToList();
+                var allExisting = GetExistingTableNames(conn);
+                var useTables = tables.Keys.Select(_ => useTableName(_).ToUpper());
+                var clashingUse = useTables.Where(_ => allExisting.Contains(_)).ToList();
                 executeCommand(conn, clashingUse.Select(_ => $"DROP TABLE {_}"));
                 executeCommand(conn, tables.Select(_ => _.Value.GenerateCreateTable(useTableName(_.Key)))); 
             }
@@ -81,8 +82,9 @@ namespace factor10.Obj2Db
             using (var conn = getOpenConnection())
             {
                 // drop _bck-tables, rename existing tables to _back and then rename _tmp-tales to the real names
-                var allExisting = getExistingTableNames(conn);
-                var clashingBck = tables.Keys.Where(_ => allExisting.Contains(bckTableName(_).ToUpper())).ToList();
+                var allExisting = GetExistingTableNames(conn);
+                var bckTables = tables.Keys.Select(_ => bckTableName(_).ToUpper());
+                var clashingBck = bckTables.Where(_ => allExisting.Contains(_)).ToList();
                 executeCommand(conn, clashingBck.Select(_ => $"DROP TABLE {_}"));
                 var clashingReal = tables.Keys.Where(_ => allExisting.Contains(_.ToUpper())).ToList();
                 executeCommand(conn, clashingReal.Select(_ => $"EXEC sp_rename '{_}', '{bckTableName(_)}'"));
@@ -108,13 +110,13 @@ namespace factor10.Obj2Db
                 cmd.ExecuteNonQuery();
         }
 
-        private HashSet<string> getExistingTableNames(SqlConnection conn)
+        public HashSet<string> GetExistingTableNames(SqlConnection conn, bool toUpper = true)
         {
             var existing = new HashSet<string>();
             using (var cmd = new SqlCommand("SELECT name FROM sys.Tables WHERE type='U'", conn))
             using (var reader = cmd.ExecuteReader())
                 while (reader.Read())
-                    existing.Add(reader.GetString(0).ToUpper());
+                    existing.Add(toUpper ? reader.GetString(0).ToUpper(): reader.GetString(0));
             return existing;
         }
 

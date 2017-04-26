@@ -12,7 +12,6 @@ namespace factor10.Obj2Db.Tests
     {
         private string _createSql;
         private AllPropertyTypes _data;
-        private ITable _table;
 
         [OneTimeSetUp]
         public void SetUp()
@@ -88,8 +87,6 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestThatATableCanBeGeneratedFromTheCreateString()
         {
-            if (Environment.MachineName != "DAN_FACTOR10")
-                return;
             var didReachItAllTheWay = false;
             SqlTestHelpers.WithNewDb("SqlTests", conn =>
             {
@@ -98,8 +95,8 @@ namespace factor10.Obj2Db.Tests
                 using (var cmd = new SqlCommand("SELECT * FROM AllPropertyTypes", conn))
                 using (cmd.ExecuteReader())
                     didReachItAllTheWay = true;
+                Assert.IsTrue(didReachItAllTheWay);
             });
-            Assert.IsTrue(didReachItAllTheWay);
         }
 
     }
