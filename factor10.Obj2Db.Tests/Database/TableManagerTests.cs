@@ -42,6 +42,9 @@ namespace factor10.Obj2Db.Tests.Database
                 var dataExtract = new DataExtract<School>(Spec, tableManager);
                 var entityWithTable = new EntityWithTable(dataExtract.TopEntity, tableManager);
 
+                // just to make some use of entityWithTable
+                Assert.IsNotNull(entityWithTable);
+
                 // pre-assert
                 var tables = tableManager.GetExistingTableNames(conn, false);
                 CollectionAssert.AreEquivalent(new[] { "School_bck", "School_Classes", "School_Classes_Students_tmp" }, tables);
@@ -66,6 +69,29 @@ namespace factor10.Obj2Db.Tests.Database
                 tables = tableManager.GetExistingTableNames(conn, false);
                 CollectionAssert.AreEquivalent(new[] { "School_bck", "School_Classes_bck", "School_Classes_Students_bck", "School", "School_Classes", "School_Classes_Students" }, tables);
 
+            });
+        }
+
+        [Test]
+        public void TestThatWrongNumberOfRowsIsCaught()
+        {
+            SqlTestHelpers.WithNewDb("SqlTableSimulateBadWrite", conn =>
+            {
+                var tableManager = new SqlTableManager(SqlTestHelpers.ConnectionString("SqlTableSimulateBadWrite"));
+                var dataExtract = new DataExtract<School>(Spec, tableManager);
+                var entityWithTable = new EntityWithTable(dataExtract.TopEntity, tableManager);
+
+                // just to make some use of entityWithTable
+                Assert.IsNotNull(entityWithTable);
+
+                // after first begin, we should have a full set of _tmp, nothing else touched
+                tableManager.Begin();
+
+                using (var cmd = new SqlCommand($"INSERT INTO school_tmp (_id_,name) VALUES ('{Guid.NewGuid()}','nisse')", conn))
+                    cmd.ExecuteNonQuery();
+
+                var ex = Assert.Throws<Exception>(() => tableManager.End());
+                Assert.AreEqual("Found 1 rows in table School but expected 0", ex.Message);
             });
         }
 

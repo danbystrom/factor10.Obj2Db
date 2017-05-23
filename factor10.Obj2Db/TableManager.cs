@@ -78,7 +78,7 @@ namespace factor10.Obj2Db
             foreach (var table in _tables)
                 Save(table);
 
-            var tables = _tables.ToLookup(_ => _.Name).ToDictionary(_ => _.Key, _ => (SqlTable) _.First());
+            var tables = _tables.ToLookup(_ => _.Name).ToDictionary(_ => _.Key, _ => _.Cast<SqlTable>().ToList());
             using (var conn = getOpenConnection())
             {
                 // drop _bck-tables, rename existing tables to _back and then rename _tmp-tales to the real names
@@ -90,14 +90,21 @@ namespace factor10.Obj2Db
                 executeCommand(conn, clashingReal.Select(_ => $"EXEC sp_rename '{_}', '{bckTableName(_)}'"));
                 executeCommand(conn, tables.Keys.Select(_ => $"EXEC sp_rename '{useTableName(_)}', '{_}'"));
 
-                var tableWithFks = new HashSet<string>();
-                foreach (var table in _tables.Cast<SqlTable>())
-                    if (!table.IsTopTable && !tableWithFks.Contains(table.Name))
-                    {
-                        tableWithFks.Add(table.Name);
+                foreach (var sqltables in tables.Select(_ => _.Value))
+                {
+                    var table = sqltables.First();
+                    if (!table.IsTopTable)
                         using (var cmd = new SqlCommand($"CREATE INDEX {table.Name}_fk ON {table.Name}({table.ForeignKeyName})", conn))
                             cmd.ExecuteNonQuery();
+
+                    var expectedRowCount = sqltables.Sum(_ => _.SavedRowCount);
+                    using (var cmd = new SqlCommand($"SELECT COUNT(*) FROM {table.Name}", conn))
+                    {
+                        var actualRowCount = (int) cmd.ExecuteScalar();
+                        if (actualRowCount != expectedRowCount)
+                            throw new Exception($"Found {actualRowCount} rows in table {table.Name} but expected {expectedRowCount}");
                     }
+                }
             }
         }
 
