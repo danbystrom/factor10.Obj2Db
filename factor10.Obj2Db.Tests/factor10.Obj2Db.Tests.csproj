@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="AggregationTests.cs" />
     <Compile Include="CompilerTests.cs" />
+    <Compile Include="Database\LogTableTests.cs" />
     <Compile Include="Database\SqlDictionaryTests.cs" />
     <Compile Include="Database\SqlBlobTests.cs" />
     <Compile Include="Database\SqlSchoolTests.cs" />

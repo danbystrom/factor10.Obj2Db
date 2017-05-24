@@ -25,12 +25,8 @@ namespace factor10.Obj2Db
 
         public static string Field2Sql(string name, Type type, bool allowNull, int max = 0, bool returnNullWhenInvalidType = false)
         {
-            var notnull = type != typeof(string) && type != typeof(byte[]);
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
-            {
                 type = type.GenericTypeArguments[0];
-                notnull = false;
-            }
             if (type.IsEnum)
                 type = typeof(int);
             string def;

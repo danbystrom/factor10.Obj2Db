@@ -19,14 +19,52 @@ namespace factor10.Obj2Db
     public sealed class SqlTableManager : ITableManager
     {
         private readonly string _connectionString;
+        private readonly string _logTableName;
+        private bool _hasVerifiedLogTableExistence;
 
         private readonly ConcurrentBag<ITable> _tables = new ConcurrentBag<ITable>();
 
         public int FlushThreshold = 5000;
 
-        public SqlTableManager(string connectionString)
+        public Guid LogSessionId = Guid.NewGuid();
+        public int LogSequenceId = 0;
+
+        public SqlTableManager(string connectionString, string logTableName = null)
         {
             _connectionString = connectionString;
+            _logTableName = logTableName;
+        }
+
+        public void WriteLog(string text)
+        {
+            using (var conn = getOpenConnection())
+                writeLog(conn, text);
+        }
+
+        private void writeLog(SqlConnection conn, string text)
+        {
+            if (_logTableName == null)
+                return;
+            ensureLogTableCreated(conn);
+            using (var cmd = new SqlCommand($"INSERT INTO {_logTableName} ([sessionid],[seqid],[when],[text]) VALUES (@sessionid,@seqid,@when,@text)", conn))
+            {
+                cmd.Parameters.AddWithValue("@sessionid", LogSessionId);
+                cmd.Parameters.AddWithValue("@seqid", LogSequenceId++);
+                cmd.Parameters.AddWithValue("@when", DateTime.Now);
+                cmd.Parameters.AddWithValue("@text", text);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void ensureLogTableCreated(SqlConnection conn)
+        {
+            if (_hasVerifiedLogTableExistence)
+                return;
+            _hasVerifiedLogTableExistence = true;
+            if (GetExistingTableNames(conn).Contains(_logTableName.ToUpper()))
+                return;
+            var cmd = $"CREATE TABLE [{_logTableName}] ([sessionid] uniqueidentifier not null, [seqid] int not null, [when] datetime not null, [text] nvarchar(max))";
+            executeCommand(conn, new[] {cmd}, false);
         }
 
         private SqlConnection getOpenConnection()
@@ -90,7 +128,7 @@ namespace factor10.Obj2Db
                 executeCommand(conn, clashingReal.Select(_ => $"EXEC sp_rename '{_}', '{bckTableName(_)}'"));
                 executeCommand(conn, tables.Keys.Select(_ => $"EXEC sp_rename '{useTableName(_)}', '{_}'"));
 
-                foreach (var sqltables in tables.Select(_ => _.Value))
+                foreach (var sqltables in tables.Values)
                 {
                     var table = sqltables.First();
                     if (!table.IsTopTable)
@@ -105,15 +143,21 @@ namespace factor10.Obj2Db
                             throw new Exception($"Found {actualRowCount} rows in table {table.Name} but expected {expectedRowCount}");
                     }
                 }
+
+                writeLog(conn, "Verified table row counts: " + string.Join(";",
+                                   tables.Values.Select(t => $"{t.First().Name}:{t.Sum(_ => _.SavedRowCount)}")));
             }
         }
 
-        private static void executeCommand(SqlConnection conn, IEnumerable<string> sqls)
+        private void executeCommand(SqlConnection conn, IEnumerable<string> sqls, bool log=true)
         {
             var list = sqls.ToList();
             if (!list.Any())
                 return;
-            using (var cmd = new SqlCommand(string.Join(";", list), conn))
+            var cmdText = string.Join(";", list);
+            if(log)
+                writeLog(conn, cmdText);
+            using (var cmd = new SqlCommand(cmdText, conn))
                 cmd.ExecuteNonQuery();
         }
 

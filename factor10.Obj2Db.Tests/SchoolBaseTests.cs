@@ -11,8 +11,7 @@ namespace factor10.Obj2Db.Tests
         protected School School;
         protected entitySpec Spec;
 
-        [OneTimeSetUp]
-        public void SetUp()
+        public SchoolBaseTests()
         {
             School = new School
             {

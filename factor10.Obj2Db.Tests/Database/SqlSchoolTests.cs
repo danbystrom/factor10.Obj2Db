@@ -13,14 +13,15 @@ namespace factor10.Obj2Db.Tests.Database
         private QueryResult _schoolQueryResult;
         private QueryResult _classQueryResult;
         private QueryResult _studentQueryResult;
+        private QueryResult _logQueryResult;
         private int _studentCount;
 
         [OneTimeSetUp]
-        public void SetUp2()
+        public void SetUp()
         {
             if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
-            var tableFactory = new SqlTableManager(SqlTestHelpers.ConnectionString("SchoolTest"));
+            var tableFactory = new SqlTableManager(SqlTestHelpers.ConnectionString("SchoolTest"), "log");
             var export = new DataExtract<School>(Spec, tableFactory);
             SqlTestHelpers.WithNewDb("SchoolTest", conn =>
             {
@@ -31,6 +32,7 @@ namespace factor10.Obj2Db.Tests.Database
                 _classQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM school_classes");
                 _studentQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT TOP 1 * FROM school_classes_students");
                 _studentCount = SqlTestHelpers.SimpleQuery<int>(conn, "SELECT count(*) FROM school_classes_students");
+                _logQueryResult = SqlTestHelpers.SimpleQuery(conn, "SELECT * FROM log");
             });
         }
 
@@ -104,6 +106,22 @@ namespace factor10.Obj2Db.Tests.Database
             if (SqlTestHelpers.ConnectionString(null) == null)
                 return;
             Assert.AreEqual(NumberOfSchools*100, _studentCount);
+        }
+
+        [Test]
+        public void ThenTheCorrectNumberOfLogEntriesAreInTable()
+        {
+            if (SqlTestHelpers.ConnectionString(null) == null)
+                return;
+            Assert.AreEqual(3, _logQueryResult.Rows.Count);
+        }
+
+        [Test]
+        public void ThenTheVerificationLogEntryIsWritten()
+        {
+            if (SqlTestHelpers.ConnectionString(null) == null)
+                return;
+            Assert.AreEqual("Verified table row counts: School_Classes_Students:10000;School_Classes:600;School:100", _logQueryResult.Rows.Last().Last());
         }
 
     }
