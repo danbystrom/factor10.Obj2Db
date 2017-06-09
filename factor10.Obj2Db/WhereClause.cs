@@ -15,21 +15,35 @@ namespace factor10.Obj2Db
         public readonly List<Entity> UsedEntities;
         public readonly List<Entity> UnusedEntities;
 
-        public WhereClause(string formula, List<Entity> fields)
+        public WhereClause(
+            string formula,
+            List<Entity> fields,
+            Entity[] fieldsThenNonAggregatedFormulas)
         {
             _formula = EntityFormula.CreateEvaluator(formula, fields);
             var usedIndexes = _formula.GetVariableIndexes();
             IsBasedOnAggregation = EntityFormula.IsEvaluatorBasedOnAggregation(usedIndexes, fields);
             if (IsBasedOnAggregation)
                 return;
+
             var usedResultIndexes = usedIndexes.Where(_ => _ < fields.Count).Select(_ => fields[_].ResultSetIndex).ToList();
             UsedEntities = new List<Entity>();
-            UnusedEntities = new List<Entity>();
-            foreach(var field in fields)
-                if (usedResultIndexes.Contains(field.ResultSetIndex))
-                    UsedEntities.Add(field);
-                else 
-                    UnusedEntities.Add(field);
+            UnusedEntities = fieldsThenNonAggregatedFormulas.ToList();
+            foreach (var ri in usedResultIndexes)
+                use(UnusedEntities.Single(_ => _.ResultSetIndex == ri));
+
+            foreach (var entity in UsedEntities.ToList())
+                foreach (var ri in entity.ReliesOnIndexes)
+                    use(fields.Single(_ => _.ResultSetIndex == ri));
+
+            EntityClass.SortWithFormulasLast(UsedEntities);
+            EntityClass.SortWithFormulasLast(UnusedEntities);
+        }
+
+        private void use(Entity x)
+        {
+            if(UnusedEntities.Remove(x))
+                UsedEntities.Add(x);
         }
 
         public bool PassesFilterPre(object[] rowResult)

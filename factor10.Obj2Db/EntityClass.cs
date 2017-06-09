@@ -8,8 +8,8 @@ namespace factor10.Obj2Db
 {
     public sealed class EntityClass : Entity
     {
-        private readonly EvaluateRpn _whereClause;
-        private readonly bool _isWhereClauseBasedOnAggregation;
+        private readonly WhereClause _whereClause;
+        //private readonly bool _isWhereClauseBasedOnAggregation;
         private readonly Entity[] _fieldsThenNonAggregatedFormulas;
         private readonly Entity[] _aggregatedFormulas;
         public readonly List<EntityAggregation> AggregationFields = new List<EntityAggregation>();
@@ -71,23 +71,25 @@ namespace factor10.Obj2Db
             for (var li = 0; li < Lists.Count; li++)
                 Lists[li].ParentInitialized(this, li);
 
-            if (!string.IsNullOrEmpty(Spec.where))
-            {
-                _whereClause = EntityFormula.CreateEvaluator(Spec.where, Fields);
-                _isWhereClauseBasedOnAggregation = EntityFormula.IsEvaluatorBasedOnAggregation(_whereClause, Fields);
-            }
-
             for (var i = 0; i < Fields.Count; i++)
                 Fields[i].ResultSetIndex = i;
 
             var fieldsThenFormulas = Fields.Where(_ => !(_ is EntityAggregation)).ToList();
-            Func<Entity, int> typeComparer = _ => _ is EntityFormula ? -1 : 1;
-            fieldsThenFormulas.Sort((x, y) => typeComparer(y) - typeComparer(x));
+            SortWithFormulasLast(fieldsThenFormulas);
             _fieldsThenNonAggregatedFormulas = fieldsThenFormulas.Where(_ => !_.IsBasedOnAggregation).ToArray();
             _aggregatedFormulas = fieldsThenFormulas.Where(_ => _.IsBasedOnAggregation).ToArray();
 
+            if (!string.IsNullOrEmpty(Spec.where))
+                _whereClause = new WhereClause(Spec.where, Fields, _fieldsThenNonAggregatedFormulas);
+
             if (PrimaryKeyIndex >= 0 && Fields[PrimaryKeyIndex].IsBasedOnAggregation)
                 throw new Exception($"The primary key must not be based on an aggregation (table '{TableName}')");
+        }
+
+        public static void SortWithFormulasLast(List<Entity> list)
+        {
+            Func<Entity, int> typeComparer = _ => _ is EntityFormula ? -1 : 1;
+            list.Sort((x, y) => typeComparer(y) - typeComparer(x));
         }
 
         private void breakDownSubEntities(Type type, Action<string> log, bool throwOnCircularReference)
@@ -176,29 +178,31 @@ namespace factor10.Obj2Db
             ForeignKeyName = string.Join("_", parent.TableName, parent.PrimaryKeyName);
         }
 
-        public bool PassesFilterPre(object[] rowResult)
+        public bool AssignAndCheckResultPre(object[] rowResult, object obj)
         {
-            if (_isWhereClauseBasedOnAggregation)
-                return true;  // let it thru and catch it in PassesFilterPost instead
-            return _whereClause == null || _whereClause.Eval(rowResult).Numeric > 0;
+            if (_whereClause == null)
+            {
+                foreach (var entity in _fieldsThenNonAggregatedFormulas)
+                    entity.AssignResult(rowResult, obj);
+                return true;
+            }
+            foreach (var entity in _whereClause.UsedEntities)
+                entity.AssignResult(rowResult, obj);
+            if (!_whereClause.PassesFilterPre(rowResult))
+                return false;
+            foreach (var entity in _whereClause.UnusedEntities)
+                entity.AssignResult(rowResult, obj);
+            return true;
         }
 
         public bool PassesFilterPost(object[] rowResult)
         {
-            if (!_isWhereClauseBasedOnAggregation)
-                return true;  // should have been handled PassesFilterPre 
-            return _whereClause == null || _whereClause.Eval(rowResult).Numeric > 0;
+            return _whereClause == null || _whereClause.PassesFilterPost(rowResult);
         }
 
         public IEnumerable GetIEnumerable(object obj)
         {
             return (IEnumerable)FieldInfo.GetValue(obj);
-        }
-
-        public void AssignResultPre(object[] result, object obj)
-        {
-            foreach (var entity in _fieldsThenNonAggregatedFormulas)
-                entity.AssignResult(result, obj);
         }
 
         public void AssignResultPost(object[] result, object obj)

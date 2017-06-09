@@ -19,9 +19,9 @@ namespace factor10.Obj2Db
 
         public readonly bool NoSave;
         public int ResultSetIndex { get; set; }
-
         public Type FieldType { get; protected set; }
 
+        public readonly HashSet<int> ReliesOnIndexes = new HashSet<int>();
 
         public NameAndType NameAndType => new NameAndType(Name, FieldType);
 

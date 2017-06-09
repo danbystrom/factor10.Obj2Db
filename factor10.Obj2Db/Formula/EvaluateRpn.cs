@@ -96,7 +96,7 @@ namespace factor10.Obj2Db.Formula
                     var x = entityFields.FindIndex(_ => _.Name == itm.Name);
                     if (x < 0)
                         throw new ArgumentException($"Unknown varable '{itm.Name}'");
-                    _original[i] = new RpnIndexedVariable(x, entityFields[x].Type != typeof(string));
+                    _original[i] = new RpnIndexedVariable(x, entityFields[x].Type);
                 }
 
             typeEval();

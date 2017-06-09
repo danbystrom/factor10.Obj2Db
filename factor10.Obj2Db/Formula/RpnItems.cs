@@ -214,6 +214,12 @@ namespace factor10.Obj2Db.Formula
             IsNumeric = isNumeric;
         }
 
+        public RpnIndexedVariable(int index, Type type)
+        {
+            Index = index;
+            IsNumeric = type != typeof(string) && type != typeof(Guid);
+        }
+
         public RpnItemOperand Resolve(object[] variables)
         {
             if (IsNumeric)

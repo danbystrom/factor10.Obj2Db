@@ -32,7 +32,9 @@ namespace factor10.Obj2Db
             FieldType = Evaluator.ResultingType is RpnItemOperandNumeric
                 ? typeof(double)
                 : typeof(string);
-            _isBasedOnAggregation = IsEvaluatorBasedOnAggregation(Evaluator, parent.Fields); //Evaluator.GetVariableIndexes().Any(_ => _ < parent.Fields.Count && parent.Fields[_].IsBasedOnAggregation);
+            var variableIndexes = Evaluator.GetVariableIndexes();
+            ReliesOnIndexes.UnionWith(variableIndexes);
+            _isBasedOnAggregation = IsEvaluatorBasedOnAggregation(variableIndexes, parent.Fields);
         }
 
         public static EvaluateRpn CreateEvaluator(string formula, List<Entity> fields)
@@ -42,9 +44,9 @@ namespace factor10.Obj2Db
             return new EvaluateRpn(new Rpn(formula), fieldsNameAndTypes);
         }
 
-        public static bool IsEvaluatorBasedOnAggregation(EvaluateRpn evaluator, List<Entity> fields)
+        public static bool IsEvaluatorBasedOnAggregation(IEnumerable<int> indexes, List<Entity> fields)
         {
-            return evaluator.GetVariableIndexes().Any(_ => _ < fields.Count && fields[_].IsBasedOnAggregation);
+            return indexes.Any(_ => _ < fields.Count && fields[_].IsBasedOnAggregation);
         }
 
     }

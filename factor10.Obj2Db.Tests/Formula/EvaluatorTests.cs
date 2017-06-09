@@ -282,20 +282,16 @@ namespace factor10.Obj2Db.Tests.Formula
             Assert.AreEqual("33", new EvaluateRpn(new Rpn("1+2+'3'")).Eval().String);
         }
 
-        //[TestCase(0, "kalle", "nisse", "kalle")]
-        //[TestCase(0, null, "nisse", null)]
-        //[TestCase(1, "kalle", "nisse", "")]
-        //[TestCase(1, "kalle", "nisse,hult", "hult")]
-        //public void TestJimmysExpression(int i1, string a1, string a2, string expected)
-        //{
-        //    var rpn = new Rpn("first(i1==0 ? a1, i1==1 ? tail(a2,\",\"))");
-        //    var x = rpn.ToString();
-        //    var eval = new EvaluateRpn(rpn);
-        //    var value = eval.Eval(
-        //        new Dictionary<string, double> {{"i1", i1}},
-        //        new Dictionary<string, string> {{"a1", a1}, {"a2", a2}});
-        //    Assert.AreEqual(expected, value.String);
-        //}
+        [Test]
+        public void CanWorkWithGuids()
+        {
+            var id = Guid.NewGuid();
+            var rpn = new Rpn($"id=='{id}'");
+
+            var eval = new EvaluateRpn(rpn, new List<NameAndType>{new NameAndType("id", typeof (Guid))});
+            var value = eval.Eval(new object[] { id});
+            Assert.AreEqual(1, value.Numeric);
+        }
 
     }
 

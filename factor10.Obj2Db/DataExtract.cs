@@ -54,11 +54,11 @@ namespace factor10.Obj2Db
             var rowResult = new object[ewt.Entity.EffectiveFieldCount];
             rowResult[rowResult.Length - 1] = rowIndex;
             var subRowIndex = 0;
-            //if (!ewt.Entity.AssignAndCheckResultPre(rowResult, obj))
-            //    return null;
-            ewt.Entity.AssignResultPre(rowResult, obj);
-            if (!ewt.Entity.PassesFilterPre(rowResult))
+            if (!ewt.Entity.AssignAndCheckResultPre(rowResult, obj))
                 return null;
+            //ewt.Entity.AssignResultPre(rowResult, obj);
+            //if (!ewt.Entity.PassesFilterPre(rowResult))
+            //    return null;
             var primaryKey = ewt.GetPrimaryKey(rowResult);
             foreach (var subEwt in ewt.Lists)
             {

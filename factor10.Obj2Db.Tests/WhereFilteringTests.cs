@@ -57,7 +57,7 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestFiltering2()
         {
-            var aStudent = new Student {FirstName = "Karl", LastName = "Anka"};
+            var aStudent = new Student { FirstName = "Karl", LastName = "Anka" };
             var school = new School
             {
                 Name = "Xxx",
@@ -100,16 +100,42 @@ namespace factor10.Obj2Db.Tests
         [Test]
         public void TestFiltering3()
         {
-            var schools = Enumerable.Range(0, 10).Select(_ => new School {Name = $"Skola {_}"});
+            var schools = Enumerable.Range(0, 10).Select(_ => new School { Name = $"Skola {_}" });
 
-            var spec = entitySpec.Begin().Where("#index%2==0");
+            var spec = entitySpec.Begin().Where("#index%2==0").Add("*");
             var export = new DataExtract<School>(spec);
             export.Run(schools);
             var tables = export.TableManager.GetWithAllData();
-            var schoolsTable = tables.Single(_ => _.Name == "School");
-            Assert.AreEqual(5, schoolsTable.Rows.Count);
-            // this does not work yet...
-            //Assert.AreEqual(4, studentsTable.Rows.Count);
+            Assert.AreEqual(5, tables.Single(_ => _.Name == "School").Rows.Count);
+            Assert.AreEqual(0, tables.Single(_ => _.Name == "Classes").Rows.Count);
+            Assert.AreEqual(0, tables.Single(_ => _.Name == "Students").Rows.Count);
+        }
+
+        public class FilterMeLazily
+        {
+            public Guid Id;
+            public int Value;
+            public int Unpure => Value++;
+
+            public FilterMeLazily()
+            {
+                Id = Guid.NewGuid();
+            }
+        }
+
+        [Test]
+        public void TestThatFilteringLazyLoadsProperties()
+        {
+            var list = Enumerable.Range(1, 3).Select(_ => new FilterMeLazily()).ToList();
+
+            var spec = entitySpec.Begin().Where($"Id=='{list[1].Id}'").Add("*");
+            var export = new DataExtract<FilterMeLazily>(spec);
+            export.Run(list);
+
+            var table = export.TableManager.GetWithAllData().Single();
+            Assert.AreEqual(1, table.Rows.Count);
+
+            Assert.AreEqual(1, list.Count(_ => _.Value != 0));
         }
 
     }

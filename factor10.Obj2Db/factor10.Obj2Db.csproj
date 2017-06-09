@@ -64,6 +64,7 @@
     <Compile Include="SqlTable.cs" />
     <Compile Include="Table.cs" />
     <Compile Include="TableManager.cs" />
+    <Compile Include="WhereClause.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
