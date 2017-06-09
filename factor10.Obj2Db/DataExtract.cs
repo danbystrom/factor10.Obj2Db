@@ -5,6 +5,10 @@ using System.Threading;
 
 namespace factor10.Obj2Db
 {
+    public interface IDataExtractCompleted
+    {
+        void Completed();
+    }
 
     public class DataExtract
     {
@@ -25,7 +29,7 @@ namespace factor10.Obj2Db
 
         public void Run(object obj)
         {
-            Run(new[] {obj});
+            Run(new[] { obj });
         }
 
         public void Run(IEnumerable<object> objs)
@@ -36,6 +40,7 @@ namespace factor10.Obj2Db
             objs.AsParallel().ForAll(_ =>
             {
                 run(ed.GetOrNew(Thread.CurrentThread.ManagedThreadId), _, Guid.Empty, Interlocked.Increment(ref nextRowIndex));
+                (_ as IDataExtractCompleted)?.Completed();
             });
             TableManager.End();
         }
@@ -49,6 +54,8 @@ namespace factor10.Obj2Db
             var rowResult = new object[ewt.Entity.EffectiveFieldCount];
             rowResult[rowResult.Length - 1] = rowIndex;
             var subRowIndex = 0;
+            //if (!ewt.Entity.AssignAndCheckResultPre(rowResult, obj))
+            //    return null;
             ewt.Entity.AssignResultPre(rowResult, obj);
             if (!ewt.Entity.PassesFilterPre(rowResult))
                 return null;

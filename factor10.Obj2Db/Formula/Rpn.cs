@@ -24,7 +24,10 @@ namespace factor10.Obj2Db.Formula
             {
                 var token = getToken();
                 if (token == null)
-                    break;
+                    if (_i >= Expression.Length)
+                        break;
+                    else
+                        throw new Exception();
                 if (token is RpnItemOperand && expectedOperand)
                 {
                     Result.Add(token);

@@ -28,7 +28,8 @@ namespace factor10.Obj2Db
             entitySpec entitySpec,
             Type type,
             LinkedFieldInfo fieldInfo,
-            Action<string> log)
+            Action<string> log,
+            bool throwOnCircularReference)
             : base(entitySpec)
         {
             log?.Invoke(
@@ -47,7 +48,7 @@ namespace factor10.Obj2Db
                 Fields.Add(new EntitySolitaire(type));
             }
 
-            breakDownSubEntities(type, log);
+            breakDownSubEntities(type, log, throwOnCircularReference);
 
             // move the nosave fields to always be at the end of the list
             var noSaveFields = Fields.Where(_ => _.NoSave).ToList();
@@ -89,16 +90,16 @@ namespace factor10.Obj2Db
                 throw new Exception($"The primary key must not be based on an aggregation (table '{TableName}')");
         }
 
-        private void breakDownSubEntities(Type type, Action<string> log)
+        private void breakDownSubEntities(Type type, Action<string> log, bool throwOnCircularReference)
         {
             if (Spec.fields == null)
                 return;
             foreach (var subEntitySpec in Spec.fields)
             {
                 subEntitySpec.nosave |= NoSave; // propagate NoSave all the way down until we reach turtles
-                foreach (var subEntity in expansionOverStar(log, this, type, subEntitySpec, new HashSet<Type>()))
+                foreach (var subEntity in expansionOverStar(log, this, type, subEntitySpec, new HashSet<Type>(), throwOnCircularReference))
                     if (subEntity is EntityClass)
-                        Lists.Add((EntityClass) subEntity);
+                        Lists.Add((EntityClass)subEntity);
                     else
                         Fields.Add(subEntity);
             }
@@ -114,21 +115,28 @@ namespace factor10.Obj2Db
             EntityClass parent,
             Type masterType,
             entitySpec subEntitySpec,
-            HashSet<Type> haltRecursion,
+            HashSet<Type> detectCircularRef,
+            bool throwOnCircularReference,
             string prefix = "",
             Type subType = null)
         {
             if (subEntitySpec.name != "*")
             {
-                yield return create(parent, subEntitySpec, masterType, log);
+                yield return create(parent, subEntitySpec, masterType, log, throwOnCircularReference);
                 yield break;
             }
 
             subType = subType ?? masterType;
 
-            if (haltRecursion.Contains(subType))
-                throw new Exception("Circular reference detected while processing inclusion of all fields ('*')");
-            haltRecursion.Add(subType);
+            if (detectCircularRef.Contains(subType))
+                if (throwOnCircularReference)
+                    throw new Exception("Circular reference detected while processing inclusion of all fields ('*')");
+                else
+                {
+                    yield return new EntityClass(parent, entitySpec.Begin(prefix.TrimEnd(".".ToCharArray())), masterType, null, log, true);
+                    yield break;
+                }
+            detectCircularRef.Add(subType);
 
             foreach (var nameAndType in LinkedFieldInfo.GetAllFieldsAndProperties(subType))
             {
@@ -139,10 +147,10 @@ namespace factor10.Obj2Db
                 if (LinkedFieldInfo.CheckForIEnumerable(nameAndType.Type) != null)
                 {
                     spec.Add("*");
-                    yield return create(parent, spec, masterType, log);
+                    yield return create(parent, spec, masterType, log, throwOnCircularReference);
                 }
                 else if (!subProperties.Any())
-                    yield return create(parent, spec, masterType, log);
+                    yield return create(parent, spec, masterType, log, throwOnCircularReference);
 
                 foreach (var liftedSubProperty in subProperties)
                 {
@@ -150,15 +158,15 @@ namespace factor10.Obj2Db
                         continue;
                     var propName = $"{prefix}{nameAndType.Name}.{liftedSubProperty.Name}";
                     if (LinkedFieldInfo.GetAllFieldsAndProperties(liftedSubProperty.Type).Any())
-                        foreach (var q in expansionOverStar(log, parent, masterType, "*", haltRecursion, propName + ".", liftedSubProperty.Type))
+                        foreach (var q in expansionOverStar(log, parent, masterType, "*", detectCircularRef, throwOnCircularReference, propName + ".", liftedSubProperty.Type))
                             yield return q;
                     else
-                        yield return create(parent, entitySpec.Begin(propName).Add("*"), masterType, log);
-                        //yield return create(propName, masterType, log);
+                        yield return create(parent, entitySpec.Begin(propName).Add("*"), masterType, log, throwOnCircularReference);
+                    //yield return create(propName, masterType, log);
                 }
             }
 
-            haltRecursion.Remove(subType);
+            detectCircularRef.Remove(subType);
         }
 
         public override void ParentInitialized(EntityClass parent, int index)

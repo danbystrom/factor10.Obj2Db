@@ -31,7 +31,7 @@ namespace factor10.Obj2Db
             NoSave = entitySpec.nosave;
         }
 
-        public static EntityClass Create(EntityClass parent, entitySpec entitySpec, Type type, Action<string> log)
+        public static EntityClass Create(EntityClass parent, entitySpec entitySpec, Type type, Action<string> log, bool throwOnCircularReference = true)
         {
             return new EntityClass(
                 parent,
@@ -44,10 +44,11 @@ namespace factor10.Obj2Db
                 },
                 type,
                 null,
-                log);
+                log,
+                throwOnCircularReference);
         }
 
-        protected static Entity create(EntityClass parent, entitySpec entitySpec, Type type, Action<string> log)
+        protected static Entity create(EntityClass parent, entitySpec entitySpec, Type type, Action<string> log, bool throwOnCircularReference)
         {
             log?.Invoke($"create: {type.Name} - {entitySpec.name}");
 
@@ -58,7 +59,7 @@ namespace factor10.Obj2Db
 
             var fieldInfo = new LinkedFieldInfo(type, entitySpec.name);
             if (fieldInfo.IEnumerable != null)
-                return new EntityClass(parent, entitySpec, fieldInfo.IEnumerable.GetGenericArguments()[0], fieldInfo, log);
+                return new EntityClass(parent, entitySpec, fieldInfo.IEnumerable.GetGenericArguments()[0], fieldInfo, log, throwOnCircularReference);
             if (!entitySpec.AnyNotStar())
                 return new EntityPlainField(entitySpec, fieldInfo, log);
 

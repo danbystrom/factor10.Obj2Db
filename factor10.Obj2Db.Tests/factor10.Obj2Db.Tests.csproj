@@ -55,6 +55,7 @@
     <Compile Include="Database\SqlSchoolTests.cs" />
     <Compile Include="Database\SqlTestHelpers.cs" />
     <Compile Include="Database\TableManagerTests.cs" />
+    <Compile Include="DataExtractCompletedTests.cs" />
     <Compile Include="EnumTests.cs" />
     <Compile Include="Formula\CompiledEvaluatorTests.cs" />
     <Compile Include="Formula\ConcurrencyTests.cs" />
@@ -64,6 +65,7 @@
     <Compile Include="SchoolAggregationTests.cs" />
     <Compile Include="StarTests2.cs" />
     <Compile Include="StarTests.cs" />
+    <Compile Include="StarTests3.cs" />
     <Compile Include="TableNamingTests.cs" />
     <Compile Include="TestDataStructures\DeepDeclaration.cs" />
     <Compile Include="TestDataStructures\SneakyList.cs" />
